@@ -24,29 +24,42 @@ def to_Ma(var, Y_in, ga, supersonic=False):
 
     Ma_out = np.ones_like(Y)
 
-    # Return NaN if the value is not physical
+    # Get indices for non-physical values
     if var == 'mcpTo_APo':
         ich = Y > from_Ma('mcpTo_APo', 1., ga, validate=False)
-        Ma_out[ich] = np.nan
     elif var in ['Po_P', 'To_T', 'rhoo_rho', 'A_Acrit']:
         ich = Y < 1.
-        Ma_out[ich] = np.nan
     elif var in ['Posh_Po', 'Mash']:
         ich = Y > 1.
-        Ma_out[ich] = np.nan
     else:
         ich = np.full(np.shape(Y), False)
 
-    # Wrapper functions for the iterative solve
-    def err(Ma_i):
-        return from_Ma(var, Ma_i, ga, validate=False) - Y[~ich]
+    # Return NaN if the value is not physical
+    Ma_out[ich] = np.nan
 
-    def jac(Ma_i):
-        return derivative_from_Ma(var, Ma_i, ga, validate=False)
-
-    # Don't do the iterative solve if every input is choked
+    # Don't try to solve if all are non-physical
     if np.any(~ich):
-        Ma_out[~ich] = newton(err, np.ones_like(Y[~ich]) * Ma_guess, fprime=jac)
+
+        # Check if an explicit inversion exists
+        if var == 'To_T':
+            Ma_out[~ich] = np.sqrt((Y[~ich] - 1.) * 2. / (ga - 1.))
+
+        elif var == 'Po_P':
+            Ma_out[~ich] = np.sqrt((Y[~ich] ** ((ga - 1.) / ga) - 1.) * 2. / (ga - 1.))
+
+        elif var == 'rhoo_rho':
+            Ma_out[~ich] = np.sqrt((Y[~ich] ** (ga - 1.) - 1.) * 2. / (ga - 1.))
+
+        else:
+
+            # Wrapper functions for the iterative solve
+            def err(Ma_i):
+                return from_Ma(var, Ma_i, ga, validate=False) - Y[~ich]
+
+            def jac(Ma_i):
+                return derivative_from_Ma(var, Ma_i, ga, validate=False)
+
+            Ma_out[~ich] = newton(err, np.ones_like(Y[~ich]) * Ma_guess, fprime=jac)
 
     return Ma_out
 
@@ -149,7 +162,7 @@ def derivative_from_Ma(var, Ma_in, ga_in, validate=True):
     g_gm1 = ga / gm1
     sqr_gm1 = np.sqrt(gm1)
     gp1_gm1 = (ga + 1.) / gm1
-    Malimsh = np.sqrt(0.5 / g_gm1)  # Limit when denominator goes negative
+    Malimsh = np.sqrt(0.5 / g_gm1) + 0.001  # Limit when denominator goes negative
 
     # Stagnation temperature ratio appears in every expression
     To_T = 1. + gm1_2 * Ma ** 2.
@@ -182,6 +195,7 @@ def derivative_from_Ma(var, Ma_in, ga_in, validate=True):
     elif var == 'A_Acrit':
         return (2. / gp1 * To_T) ** (0.5 * gp1_gm1) * (-recip_Ma ** 2. + 0.5 * gp1 * To_T ** -1.)
 
+    # Post-shock Mack number
     elif var == 'Mash':
         der_Mash = np.asarray(np.ones_like(Ma) * np.nan)
         A = gp1 ** 2. * Ma / np.sqrt(2.)

@@ -22,34 +22,27 @@ Xsup = {v: cf.to_Ma(v, Y[v][(Ma > 1.) & np.isfinite(Y[v])], ga, supersonic=True)
 fig, ax = plt.subplots()
 fig.set_size_inches((7., 7.))
 
-# Loop over each quantity
+# Plot forwards
 for v in varlist:
-    # Plot forwards
     ax.plot(Ma, Y[v], label=v.replace('_', ''))
 
-# Reset plot colors
+# Plot inverted subsonic
 ax.set_prop_cycle(None)
-
-# Loop again
 for v in varlist:
-    # Plot inverted subsonic
     ax.plot(Xsub[v], Y[v][(Ma <= 1.) & np.isfinite(Y[v])], 'x')
 
-# Reset plot colors
+# Plot inverted supersonic
 ax.set_prop_cycle(None)
-
-# Loop again
 for v in varlist:
-    # Plot inverted supersonic
     ax.plot(Xsup[v], Y[v][(Ma > 1.) & np.isfinite(Y[v])], '+')
 
+# Decorate plot
 ax.legend()
 ax.set_xlim(Ma[np.ix_([1, -1])])
 ax.set_ylim((0., 3.))
 ax.set_title(r'Compressible flow quantities for perfect gas with $\gamma = {}$'.format(ga))
 ax.set_xlabel(r'Mach Number, $\mathit{Ma}$')
 ax.set_ylabel(r'Quantity')
-
 fig.tight_layout()
 
 plt.show()
