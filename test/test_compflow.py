@@ -63,7 +63,7 @@ def test_inverse_sub():
         X = cf.to_Ma(v, dat_sub[v], ga)
         err_sub = np.abs(X - dat_sub['Ma'])
         imax = np.argmax(err_sub)
-        assert err_sub[imax] < 0.01, \
+        assert err_sub[imax] <= 0.01, \
             "{0}={1} =>  Ma={2} with error={3}".format(
                 v, dat_sub[v][imax], X[imax], err_sub[imax])
 
@@ -73,7 +73,7 @@ def test_inverse_sup():
         X = cf.to_Ma(v, dat_sup[v], ga, supersonic=True)
         err_sup = np.abs(X - dat_sup['Ma'])
         imax = np.argmax(err_sup)
-        assert err_sup[imax] < 0.01, \
+        assert err_sup[imax] <= 0.01, \
             "{0}={1} =>  Ma={2} with error={3}".format(
                 v, dat_sup[v][imax], X[imax], err_sup[imax])
 
