@@ -1,7 +1,6 @@
 #
 # Functions to calculate one-dimensional compressible flow quantities
 #
-
 import numpy as np
 from scipy.optimize import newton
 
@@ -59,6 +58,7 @@ def to_Ma(var, Y_in, ga, supersonic=False):
             def jac(Ma_i):
                 return derivative_from_Ma(var, Ma_i, ga, validate=False)
 
+            # Newton iteration
             Ma_out[~ich] = newton(err, np.ones_like(Y[~ich]) * Ma_guess, fprime=jac)
 
     return Ma_out
