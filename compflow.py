@@ -6,14 +6,17 @@ from scipy.optimize import newton
 
 
 # Invert the Mach number relations by solving iteratively
-def to_Ma(var, Y_in, ga, supersonic=False):
+def to_Ma(var, Y_in, ga, supersonic=False, validate=True):
     #
-    # Validate input data
-    Y = np.asarray_chkfinite(Y_in)
-    if ga <= 0.:
-        raise ValueError('Specific heat ratio must be positive.')
-    if np.any(Y < 0.):
-        raise ValueError('Input quantity must be positive.')
+    if validate:
+        # Validate input data
+        Y = np.asarray_chkfinite(Y_in)
+        if ga <= 0.:
+            raise ValueError('Specific heat ratio must be positive.')
+        if np.any(Y < 0.):
+            raise ValueError('Input quantity must be positive.')
+    else:
+        Y = np.asarray(Y_in)
 
     # Choose initial guess on sub or supersonic branch
     if supersonic or var in ['Posh_Po', 'Mash']:
@@ -79,65 +82,55 @@ def from_Ma(var, Ma_in, ga_in, validate=True):
     else:
         ga = np.asarray(ga_in)
         Ma = np.asarray(Ma_in)
-        Malimsh = np.sqrt((ga - 1.) / ga / 2.) + 0.001  # Mathematical limit on pre-shock Ma
-
-    # Define shorthand gamma combinations
-    gm1 = ga - 1.
-    gp1 = ga + 1.
-    gm1_2 = gm1 / 2.
-    gp1_2 = gp1 / 2.
-    g_gm1 = ga / gm1
-    sqr_gm1 = np.sqrt(gm1)
-    gp1_gm1 = (ga + 1.) / gm1
 
     # Stagnation temperature ratio appears in every expression
-    To_T = 1. + gm1_2 * Ma ** 2.
-
-    # Safe reciprocal of Ma
-    with np.errstate(divide='ignore'):
-        recip_Ma = 1. / Ma
+    To_T = 1. + 0.5 * (ga - 1.0) * Ma ** 2.
 
     # Simple ratios
     if var == 'To_T':
         return To_T
 
-    elif var == 'Po_P':
-        return To_T ** g_gm1
+    if var == 'Po_P':
+        return To_T ** (ga / (ga - 1.0))
 
-    elif var == 'rhoo_rho':
-        return To_T ** (1. / gm1)
+    if var == 'rhoo_rho':
+        return To_T ** (1. / (ga - 1.0))
 
     # Velocity and mass flow functions
-    elif var == 'V_cpTo':
-        return sqr_gm1 * Ma * To_T ** -0.5
+    if var == 'V_cpTo':
+        return np.sqrt(ga - 1.0) * Ma * To_T ** -0.5
 
-    elif var == 'mcpTo_APo':
-        return ga / sqr_gm1 * Ma * To_T ** (-0.5 * gp1_gm1)
+    if var == 'mcpTo_APo':
+        return ga / np.sqrt(ga - 1.0) * Ma * To_T ** (-0.5 * (ga + 1.0) / (ga - 1.0))
 
-    elif var == 'mcpTo_AP':
-        return ga / sqr_gm1 * Ma * To_T ** 0.5
+    if var == 'mcpTo_AP':
+        return ga / np.sqrt(ga - 1.0) * Ma * To_T ** 0.5
 
     # Choking area
-    elif var == 'A_Acrit':
-        return recip_Ma * (2. / gp1 * To_T) ** (0.5 * gp1_gm1)
+    if var == 'A_Acrit':
+        # Safe reciprocal of Ma
+        with np.errstate(divide='ignore'):
+            recip_Ma = 1. / Ma
+        return recip_Ma * (2. / (ga + 1.0) * To_T) ** (0.5 * (ga + 1.0) / (ga - 1.0))
+
+    Malimsh = np.sqrt((ga - 1.) / ga / 2.) + 0.001  # Mathematical limit on pre-shock Ma
 
     # Post-shock Mach
-    elif var == 'Mash':
+    if var == 'Mash':
         Mash = np.asarray(np.ones_like(Ma) * np.nan)
-        Mash[Ma >= Malimsh] = (To_T[Ma >= Malimsh] / (ga * Ma[Ma >= Malimsh] ** 2. - gm1_2)) ** 0.5
+        Mash[Ma >= Malimsh] = (To_T[Ma >= Malimsh] / (ga * Ma[Ma >= Malimsh] ** 2. - 0.5 * (ga - 1.0))) ** 0.5
         return Mash
 
     # Shock pressure ratio
-    elif var == 'Posh_Po':
+    if var == 'Posh_Po':
         Posh_Po = np.asarray(np.ones_like(Ma) * np.nan)
-        A = gp1_2 * Ma ** 2. / To_T
-        B = 2. * ga / gp1 * Ma ** 2. - 1. / gp1_gm1
-        Posh_Po[Ma >= Malimsh] = A[Ma >= Malimsh] ** g_gm1 * B[Ma >= Malimsh] ** (-1. / gm1)
+        A = 0.5 * (ga + 1.) * Ma ** 2. / To_T
+        B = 2. * ga / (ga + 1.0) * Ma ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
+        Posh_Po[Ma >= Malimsh] = A[Ma >= Malimsh] ** (ga / (ga - 1.0)) * B[Ma >= Malimsh] ** (-1. / (ga - 1.))
         return Posh_Po
 
     # Throw an error if we don't recognise the requested variable
-    else:
-        raise ValueError('Invalid quantity requested: {}.'.format(var))
+    raise ValueError('Invalid quantity requested: {}.'.format(var))
 
 
 # Quantity derivatives as explict functions of Ma
@@ -167,10 +160,6 @@ def derivative_from_Ma(var, Ma_in, ga_in, validate=True):
     # Stagnation temperature ratio appears in every expression
     To_T = 1. + gm1_2 * Ma ** 2.
 
-    # Safe reciprocal of Ma
-    with np.errstate(divide='ignore'):
-        recip_Ma = 1. / Ma
-
     # Simple ratios
     if var == 'To_T':
         return gm1 * Ma
@@ -193,6 +182,9 @@ def derivative_from_Ma(var, Ma_in, ga_in, validate=True):
 
     # Choking area
     elif var == 'A_Acrit':
+        # Safe reciprocal of Ma
+        with np.errstate(divide='ignore'):
+            recip_Ma = 1. / Ma
         return (2. / gp1 * To_T) ** (0.5 * gp1_gm1) * (-recip_Ma ** 2. + 0.5 * gp1 * To_T ** -1.)
 
     # Post-shock Mack number
