@@ -1,6 +1,9 @@
-#
-# Functions to calculate one-dimensional compressible flow quantities
-#
+"""Functions to calculate one-dimensional compressible flow quantities.
+
+TODO:
+Add per-variable functions to call without branching
+"""
+
 import numpy as np
 from scipy.optimize import newton
 
