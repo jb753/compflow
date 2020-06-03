@@ -17,16 +17,10 @@ def check_input(y, ga):
 def to_Ma(var, Y_in, ga, supersonic=False):
     """Invert the Mach number relations by solving iteratively."""
 
-    Y = np.asarray(Y_in)
+    Y = np.atleast_1d(Y_in)
     check_input(Y, ga)
 
-    # Choose initial guess on sub or supersonic branch
-    if supersonic or var in ['Posh_Po', 'Mash']:
-        Ma_guess = np.array(1.5)
-    else:
-        Ma_guess = np.array(0.3)
-
-    Ma_out = np.ones_like(Y)
+    Ma_out = np.ones_like(Y) * np.nan
 
     # Get indices for non-physical values
     if var == 'mcpTo_APo':
@@ -37,9 +31,6 @@ def to_Ma(var, Y_in, ga, supersonic=False):
         ich = Y > 1.
     else:
         ich = np.full(np.shape(Y), False)
-
-    # Return NaN if the value is not physical
-    Ma_out[ich] = np.nan
 
     # Don't try to solve if all are non-physical
     if np.any(~ich):
@@ -60,43 +51,23 @@ def to_Ma(var, Y_in, ga, supersonic=False):
         else:
 
             # Velocity and mass flow functions
-            if var == 'V_cpTo':
-                f = V_cpTo_from_Ma
-                fp = der_V_cpTo_from_Ma
-
             if var == 'mcpTo_APo':
-                f = mcpTo_APo_from_Ma
-                fp = der_mcpTo_APo_from_Ma
+                return Ma_from_mcpTo_APo(Y, ga, supersonic=supersonic)
 
             if var == 'mcpTo_AP':
-                f = mcpTo_AP_from_Ma
-                fp = der_mcpTo_AP_from_Ma
+                return Ma_from_mcpTo_AP(Y, ga)
 
             # Choking area
             if var == 'A_Acrit':
-                f = A_Acrit_from_Ma
-                fp = der_A_Acrit_from_Ma
+                return Ma_from_A_Acrit(Y, ga, supersonic=supersonic)
 
             # Post-shock Mach
             if var == 'Mash':
-                f = Mash_from_Ma
-                fp = der_Mash_from_Ma
+                return Ma_from_Mash(Y, ga)
 
             # Shock pressure ratio
             if var == 'Posh_Po':
-                f = Posh_Po_from_Ma
-                fp = der_Posh_Po_from_Ma
-
-            # Wrapper functions for the iterative solve
-            def err(Ma_i):
-                return f(Ma_i, ga) - Y[~ich]
-
-            def jac(Ma_i):
-                return fp(Ma_i, ga)
-
-            # Newton iteration
-            Ma_out[~ich] = newton(
-                err, np.ones_like(Y[~ich]) * Ma_guess, fprime=jac)
+                return Ma_from_Posh_Po(Y, ga)
 
     return Ma_out
 
@@ -178,7 +149,7 @@ def Ma_from_Posh_Po(Posh_Po, ga):
     def fp(x):
         return der_Posh_Po_from_Ma(x, ga)
 
-    Ma_guess = 1.3 * np.ones_like(Posh_Po)
+    Ma_guess = 1.5 * np.ones_like(Posh_Po)
 
     return newton(f, Ma_guess, fprime=fp)
 
@@ -270,7 +241,7 @@ def Posh_Po_from_Ma(Ma, ga):
 def from_Ma(var, Ma_in, ga):
     """Evaluate compressible flow quantities as explicit functions of Ma."""
 
-    Ma = np.asarray(Ma_in)
+    Ma = np.atleast_1d(Ma_in)
     check_input(Ma, ga)
 
     # Simple ratios
