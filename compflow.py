@@ -1,4 +1,4 @@
-"""Functions to calculate one-dimensional compressible flow quantities.
+"""Perfect gas compressible flow relations.
 
 TODO:
 Add per-variable functions to call without branching
@@ -12,7 +12,6 @@ def to_Ma(var, Y_in, ga, supersonic=False, validate=True):
     """Invert the Mach number relations by solving iteratively."""
 
     if validate:
-        # Validate input data
         Y = np.asarray_chkfinite(Y_in)
         if ga <= 0.:
             raise ValueError('Specific heat ratio must be positive.')
@@ -47,27 +46,131 @@ def to_Ma(var, Y_in, ga, supersonic=False, validate=True):
 
         # Check if an explicit inversion exists
         if var == 'To_T':
-            Ma_out[~ich] = np.sqrt((Y[~ich] - 1.) * 2. / (ga - 1.))
+            Ma_out[~ich] = Ma_from_To_T(Y[~ich], ga)
 
         elif var == 'Po_P':
-            Ma_out[~ich] = np.sqrt((Y[~ich] ** ((ga - 1.) / ga) - 1.) * 2. / (ga - 1.))
+            Ma_out[~ich] = Ma_from_Po_P(Y[~ich], ga)
 
         elif var == 'rhoo_rho':
-            Ma_out[~ich] = np.sqrt((Y[~ich] ** (ga - 1.) - 1.) * 2. / (ga - 1.))
-
+            Ma_out[~ich] = Ma_from_rhoo_rho(Y[~ich], ga)
+            
         else:
+
+            # Velocity and mass flow functions
+            if var == 'V_cpTo':
+                f = V_cpTo_from_Ma
+                fp = der_V_cpTo_from_Ma
+
+            if var == 'mcpTo_APo':
+                f = mcpTo_APo_from_Ma
+                fp = der_mcpTo_APo_from_Ma
+
+            if var == 'mcpTo_AP':
+                f = mcpTo_AP_from_Ma
+                fp = der_mcpTo_AP_from_Ma
+
+            # Choking area
+            if var == 'A_Acrit':
+                f = A_Acrit_from_Ma
+                fp = der_A_Acrit_from_Ma
+
+            # Post-shock Mach
+            if var == 'Mash':
+                f = Mash_from_Ma
+                fp = der_Mash_from_Ma
+
+            # Shock pressure ratio
+            if var == 'Posh_Po':
+                f = Posh_Po_from_Ma
+                fp = der_Posh_Po_from_Ma
 
             # Wrapper functions for the iterative solve
             def err(Ma_i):
-                return from_Ma(var, Ma_i, ga, validate=False) - Y[~ich]
+                return f(Ma_i, ga) - Y[~ich]
 
             def jac(Ma_i):
-                return derivative_from_Ma(var, Ma_i, ga, validate=False)
+                return fp(Ma_i, ga)
 
             # Newton iteration
-            Ma_out[~ich] = newton(err, np.ones_like(Y[~ich]) * Ma_guess, fprime=jac)
+            Ma_out[~ich] = newton(
+                err, np.ones_like(Y[~ich]) * Ma_guess, fprime=jac)
 
     return Ma_out
+
+
+def Ma_from_To_T(To_T, ga):
+    return np.sqrt((To_T - 1.) * 2. / (ga - 1.))
+
+
+def Ma_from_Po_P(Po_P, ga):
+    return np.sqrt((Po_P ** ((ga - 1.) / ga) - 1.) * 2. / (ga - 1.))
+
+
+def Ma_from_rhoo_rho(rhoo_rho, ga):
+    return np.sqrt((rhoo_rho ** (ga - 1.) - 1.) * 2. / (ga - 1.))
+
+
+def To_T_from_Ma(Ma, ga):
+    return 1. + 0.5 * (ga - 1.0) * Ma ** 2.
+
+
+def Po_P_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return To_T ** (ga / (ga - 1.0))
+
+
+def rhoo_rho_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return To_T ** (1. / (ga - 1.0))
+
+
+def V_cpTo_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return np.sqrt(ga - 1.0) * Ma * To_T ** -0.5
+
+
+def mcpTo_APo_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return (ga / np.sqrt(ga - 1.0) * Ma
+            * To_T ** (-0.5 * (ga + 1.0) / (ga - 1.0)))
+
+
+def mcpTo_AP_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return ga / np.sqrt(ga - 1.0) * Ma * To_T ** 0.5
+
+
+def A_Acrit_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    # Safe reciprocal of Ma
+    with np.errstate(divide='ignore'):
+        recip_Ma = 1. / Ma
+    return (recip_Ma
+            * (2. / (ga + 1.0) * To_T) ** (0.5 * (ga + 1.0) / (ga - 1.0)))
+
+
+def Malimsh_from_ga(ga):
+    return np.sqrt((ga - 1.) / ga / 2.) + 0.001
+
+
+def Mash_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    Mash = np.asarray(np.ones_like(Ma) * np.nan)
+    Malimsh = Malimsh_from_ga(ga)
+    Mash[Ma >= Malimsh] = (To_T[Ma >= Malimsh] / (ga * Ma[Ma >= Malimsh] ** 2.
+                                                  - 0.5 * (ga - 1.0))) ** 0.5
+    return Mash
+
+
+def Posh_Po_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    Posh_Po = np.asarray(np.ones_like(Ma) * np.nan)
+    A = 0.5 * (ga + 1.) * Ma ** 2. / To_T
+    B = 2. * ga / (ga + 1.0) * Ma ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
+    Malimsh = Malimsh_from_ga(ga)
+    Posh_Po[Ma >= Malimsh] = (A[Ma >= Malimsh] ** (ga / (ga - 1.0))
+                              * B[Ma >= Malimsh] ** (-1. / (ga - 1.)))
+    return Posh_Po
 
 
 def from_Ma(var, Ma_in, ga_in, validate=True):
@@ -84,58 +187,112 @@ def from_Ma(var, Ma_in, ga_in, validate=True):
         ga = np.asarray(ga_in)
         Ma = np.asarray(Ma_in)
 
-    # Stagnation temperature ratio appears in every expression
-    To_T = 1. + 0.5 * (ga - 1.0) * Ma ** 2.
-
     # Simple ratios
     if var == 'To_T':
-        return To_T
+        return To_T_from_Ma(Ma, ga)
 
     if var == 'Po_P':
-        return To_T ** (ga / (ga - 1.0))
+        return Po_P_from_Ma(Ma, ga)
 
     if var == 'rhoo_rho':
-        return To_T ** (1. / (ga - 1.0))
+        return rhoo_rho_from_Ma(Ma, ga)
 
     # Velocity and mass flow functions
     if var == 'V_cpTo':
-        return np.sqrt(ga - 1.0) * Ma * To_T ** -0.5
+        return V_cpTo_from_Ma(Ma, ga)
 
     if var == 'mcpTo_APo':
-        return ga / np.sqrt(ga - 1.0) * Ma * To_T ** (-0.5 * (ga + 1.0) / (ga - 1.0))
+        return mcpTo_APo_from_Ma(Ma, ga)
 
     if var == 'mcpTo_AP':
-        return ga / np.sqrt(ga - 1.0) * Ma * To_T ** 0.5
+        return mcpTo_AP_from_Ma(Ma, ga)
 
     # Choking area
     if var == 'A_Acrit':
-        # Safe reciprocal of Ma
-        with np.errstate(divide='ignore'):
-            recip_Ma = 1. / Ma
-        return recip_Ma * (2. / (ga + 1.0) * To_T) ** (0.5 * (ga + 1.0) / (ga - 1.0))
-
-    Malimsh = np.sqrt((ga - 1.) / ga / 2.) + 0.001  # Mathematical limit on pre-shock Ma
+        return A_Acrit_from_Ma(Ma, ga)
 
     # Post-shock Mach
     if var == 'Mash':
-        Mash = np.asarray(np.ones_like(Ma) * np.nan)
-        Mash[Ma >= Malimsh] = (To_T[Ma >= Malimsh] / (ga * Ma[Ma >= Malimsh] ** 2. - 0.5 * (ga - 1.0))) ** 0.5
-        return Mash
+        return Mash_from_Ma(Ma, ga)
 
     # Shock pressure ratio
     if var == 'Posh_Po':
-        Posh_Po = np.asarray(np.ones_like(Ma) * np.nan)
-        A = 0.5 * (ga + 1.) * Ma ** 2. / To_T
-        B = 2. * ga / (ga + 1.0) * Ma ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
-        Posh_Po[Ma >= Malimsh] = A[Ma >= Malimsh] ** (ga / (ga - 1.0)) * B[Ma >= Malimsh] ** (-1. / (ga - 1.))
-        return Posh_Po
+        return Posh_Po_from_Ma(Ma, ga)
 
     # Throw an error if we don't recognise the requested variable
     raise ValueError('Invalid quantity requested: {}.'.format(var))
 
 
+def der_To_T_from_Ma(Ma, ga):
+    return (ga - 1.) * Ma
+
+
+def der_Po_P_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return ga * Ma * To_T ** (ga / (ga - 1.) - 1.)
+
+
+def der_rhoo_rho_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return Ma * To_T ** (1. / (ga - 1.) - 1.)
+
+
+def der_V_cpTo_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return (np.sqrt(ga - 1.)
+            * (To_T ** -0.5 - 0.5 * (ga - 1.) * Ma ** 2. * To_T ** -1.5))
+
+
+def der_mcpTo_APo_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return ((ga / np.sqrt(ga - 1.)
+             * (To_T ** (-0.5 * (ga + 1.) / (ga - 1.))
+                 - 0.5 * (ga + 1.) * Ma ** 2.
+                 * To_T ** (-0.5 * (ga + 1.) / (ga - 1.) - 1.))))
+
+
+def der_mcpTo_AP_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    return (ga / np.sqrt(ga - 1.)
+            * (To_T ** 0.5 + 0.5 * (ga - 1.) * Ma ** 2. * To_T ** -0.5))
+
+
+def der_A_Acrit_from_Ma(Ma, ga):
+    To_T = To_T_from_Ma(Ma, ga)
+    # Safe reciprocal of Ma
+    with np.errstate(divide='ignore'):
+        recip_Ma = 1. / Ma
+    return ((2. / (ga + 1.) * To_T) ** (0.5 * (ga + 1.) / (ga - 1.))
+            * (-recip_Ma ** 2. + 0.5 * (ga + 1.) * To_T ** -1.))
+
+
+def der_Mash_from_Ma(Ma, ga):
+    der_Mash = np.asarray(np.ones_like(Ma) * np.nan)
+    Malimsh = Malimsh_from_ga(ga)
+    To_T = To_T_from_Ma(Ma, ga)
+    A = (ga + 1.) ** 2. * Ma / np.sqrt(2.)
+    C = ga * (2 * Ma ** 2. - 1.) + 1
+    der_Mash[Ma >= Malimsh] = (-A[Ma >= Malimsh] *
+                               To_T[Ma >= Malimsh] ** -.5
+                               * C[Ma >= Malimsh] ** -1.5)
+    return der_Mash
+
+
+def der_Posh_Po_from_Ma(Ma, ga):
+    der_Posh_Po = np.asarray(np.ones_like(Ma) * np.nan)
+    Malimsh = Malimsh_from_ga(ga)
+    To_T = To_T_from_Ma(Ma, ga)
+    A = ga * Ma * (Ma ** 2. - 1.) ** 2. / To_T ** 2.
+    B = (ga + 1.) * Ma ** 2. / To_T / 2.
+    C = 2. * ga / (ga + 1.) * Ma ** 2. - 1. / (ga + 1.) * (ga - 1.)
+    der_Posh_Po[Ma >= Malimsh] = (-A[Ma >= Malimsh]
+                                  * B[Ma >= Malimsh] ** (1. / (ga - 1.))
+                                  * C[Ma >= Malimsh] ** (-ga / (ga - 1.)))
+    return der_Posh_Po
+
+
 def derivative_from_Ma(var, Ma_in, ga_in, validate=True):
-    """Evaluate compressible flow quantity derivatives as explict functions of Ma."""
+    """Evaluate compressible flow quantity derivatives as explict functions """
 
     if validate:
         ga = np.asarray_chkfinite(ga_in)
@@ -148,59 +305,37 @@ def derivative_from_Ma(var, Ma_in, ga_in, validate=True):
         ga = np.asarray(ga_in)
         Ma = np.asarray(Ma_in)
 
-    # Stagnation temperature ratio appears in every expression
-    To_T = 1. + 0.5 * (ga - 1.) * Ma ** 2.
-
     # Simple ratios
     if var == 'To_T':
-        return (ga - 1.) * Ma
+        return der_To_T_from_Ma(Ma, ga)
 
     if var == 'Po_P':
-        return ga * Ma * To_T ** (ga / (ga - 1.) - 1.)
+        return der_Po_P_from_Ma(Ma, ga)
 
     if var == 'rhoo_rho':
-        return Ma * To_T ** (1. / (ga - 1.) - 1.)
+        return der_rhoo_rho_from_Ma(Ma, ga)
 
     # Velocity and mass flow functions
     if var == 'V_cpTo':
-        return np.sqrt(ga - 1.) * (To_T ** -0.5 - 0.5 * (ga - 1.) * Ma ** 2. * To_T ** -1.5)
+        return der_V_cpTo_from_Ma(Ma, ga)
 
     if var == 'mcpTo_APo':
-        return ga / np.sqrt(ga - 1.) * \
-               (To_T ** (-0.5 * (ga + 1.) / (ga - 1.))
-                - 0.5 * (ga + 1.) * Ma ** 2. * To_T ** (-0.5 * (ga + 1.) / (ga - 1.) - 1.))
+        return der_mcpTo_APo_from_Ma(Ma, ga)
 
     if var == 'mcpTo_AP':
-        return ga / np.sqrt(ga - 1.) * (To_T ** 0.5 + 0.5 * (ga - 1.) * Ma ** 2. * To_T ** -0.5)
+        return der_mcpTo_AP_from_Ma(Ma, ga)
 
     # Choking area
     if var == 'A_Acrit':
-        # Safe reciprocal of Ma
-        with np.errstate(divide='ignore'):
-            recip_Ma = 1. / Ma
-        return (2. / (ga + 1.) * To_T) ** (0.5 * (ga + 1.) / (ga - 1.)) * (
-                -recip_Ma ** 2. + 0.5 * (ga + 1.) * To_T ** -1.)
-
-    # Define shorthand gamma combinations
-    Malimsh = np.sqrt(0.5 * (ga - 1.) / ga) + 0.001  # Limit when denominator goes negative
+        return der_A_Acrit_from_Ma(Ma, ga)
 
     # Post-shock Mack number
     if var == 'Mash':
-        der_Mash = np.asarray(np.ones_like(Ma) * np.nan)
-        A = (ga + 1.) ** 2. * Ma / np.sqrt(2.)
-        C = ga * (2 * Ma ** 2. - 1.) + 1
-        der_Mash[Ma >= Malimsh] = -A[Ma >= Malimsh] * To_T[Ma >= Malimsh] ** -.5 * C[Ma >= Malimsh] ** -1.5
-        return der_Mash
+        return der_Mash_from_Ma(Ma, ga)
 
     # Shock pressure ratio
     if var == 'Posh_Po':
-        der_Posh_Po = np.asarray(np.ones_like(Ma) * np.nan)
-        A = ga * Ma * (Ma ** 2. - 1.) ** 2. / To_T ** 2.
-        B = (ga + 1.) * Ma ** 2. / To_T / 2.
-        C = 2. * ga / (ga + 1.) * Ma ** 2. - 1. / (ga + 1.) * (ga - 1.)
-        der_Posh_Po[Ma >= Malimsh] = -A[Ma >= Malimsh] * B[Ma >= Malimsh] ** (1. / gm1) * C[Ma >= Malimsh] ** (
-                -ga / (ga - 1.))
-        return der_Posh_Po
+        return der_Posh_Po_from_Ma(Ma, ga)
 
     # Throw an error if we don't recognise the requested variable
     raise ValueError('Invalid quantity requested: {}.'.format(var))
