@@ -41,10 +41,11 @@ def test_Ma_0():
     val0 = np.array([1., 1., 1., 0., 0., 0., np.nan, np.nan])
     Y0 = {var_test_sup[i]: val0[i] for i in range(len(var_test_sup))}
     for v in var_test_sup:
-        assert np.isclose( cf.from_Ma( v, 0., ga), Y0[v],
+        print(v, Y0[v], cf.from_Ma( v, np.atleast_1d(0.), ga))
+        assert np.isclose( cf.from_Ma( v, np.atleast_1d(0.), ga), Y0[v],
                            atol=1e-7, equal_nan=True)
         if np.isfinite(Y0[v]):
-            assert np.isclose( cf.to_Ma( v, Y0[v], ga), 0.0,
+            assert np.isclose( cf.to_Ma( v, np.atleast_1d(Y0[v]), ga), 0.0,
                                 atol=1e-7, equal_nan=True)
 
 def test_Ma_inf():
@@ -54,7 +55,7 @@ def test_Ma_inf():
     Y0 = {var_test_sup[i]: val_inf[i] for i in range(len(var_test_sup))}
     for v in var_test_sup:
         print(v)
-        assert np.isclose( cf.from_Ma( v, np.inf, ga), Y0[v], atol=1e-7)
+        assert np.isclose( cf.from_Ma( v, np.atleast_1d(np.inf), ga), Y0[v], atol=1e-7)
 
 def test_explicit_sub():
     """Compare quantity values to CUED Data Book, subsonic."""

@@ -16,8 +16,10 @@ varlist = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo',
 Y = {v: cf.from_Ma(v, Ma, ga) for v in varlist}
 
 # Backwards calculations in sub and supersonic regimes
-Xsub = {v: cf.to_Ma(v, Y[v][(Ma <= 1.) & np.isfinite(Y[v])], ga) for v in varlist}
-Xsup = {v: cf.to_Ma(v, Y[v][(Ma > 1.) & np.isfinite(Y[v])], ga, supersonic=True) for v in varlist}
+Xsub = {v: cf.to_Ma(v, Y[v][(Ma <= 1.) & np.isfinite(Y[v])], ga)
+        for v in varlist}
+Xsup = {v: cf.to_Ma(v, Y[v][(Ma > 1.) & np.isfinite(Y[v])], ga, supersonic=True)
+        for v in varlist}
 
 # Create figure
 fig, ax = plt.subplots()

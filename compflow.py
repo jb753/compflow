@@ -198,19 +198,19 @@ def rhoo_rho_from_Ma(Ma, ga):
 
 
 def V_cpTo_from_Ma(Ma, ga):
-    with np.errstate(invalid='ignore'):
-        V_cpTo = np.asarray(np.sqrt(
-            (ga - 1.0) * Ma * Ma / (1. + (ga - 1.)*Ma*Ma/2.) ))
-    V_cpTo[np.isinf(Ma)] = np.sqrt(2.)
+    ii = ~np.isinf(Ma)
+    V_cpTo = np.sqrt(2.) * np.ones_like(Ma)  # Limit for Ma -> inf
+    V_cpTo[ii] = np.sqrt( (ga - 1.0) * Ma[ii] ** 2.
+                          / (1. + (ga - 1.) * Ma[ii] **2. /2.) )
     return V_cpTo
 
 
 def mcpTo_APo_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
-    with np.errstate(invalid='ignore'):
-        mcpTo_APo = np.asarray(ga / np.sqrt(ga - 1.0) * Ma
-                            * To_T ** (-0.5 * (ga + 1.0) / (ga - 1.0)))
-    mcpTo_APo[np.isinf(Ma)] = 0.
+    ii = ~np.isinf(Ma)
+    mcpTo_APo = np.zeros_like(Ma)  # Limit for Ma -> inf
+    mcpTo_APo[ii] = (ga / np.sqrt(ga - 1.0) * Ma[ii]
+                            * To_T[ii] ** (-0.5 * (ga + 1.0) / (ga - 1.0)))
     return mcpTo_APo
 
 
@@ -221,11 +221,11 @@ def mcpTo_AP_from_Ma(Ma, ga):
 
 def A_Acrit_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
-    # Safe reciprocal of Ma
-    with np.errstate(divide='ignore'):
-        recip_Ma = 1. / Ma
-    return (recip_Ma
-            * (2. / (ga + 1.0) * To_T) ** (0.5 * (ga + 1.0) / (ga - 1.0)))
+    ii = ~(Ma ==.0)  # Do not evaluate when Ma = 0
+    A_Acrit = np.ones_like(Ma) * np.inf
+    A_Acrit[ii] = ( 1./Ma[ii] * (2. / (ga + 1.0) * To_T[ii])
+                    ** (0.5 * (ga + 1.0) / (ga - 1.0)))
+    return A_Acrit
 
 
 def Malimsh_from_ga(ga):
@@ -234,25 +234,36 @@ def Malimsh_from_ga(ga):
 
 def Mash_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
-    Mash = np.asarray(np.ones_like(Ma) * np.nan)
     Malimsh = Malimsh_from_ga(ga)
-    with np.errstate(invalid='ignore'):
-        Mash[Ma >= Malimsh] = (To_T[Ma >= Malimsh]
-                / (ga * Ma[Ma >= Malimsh] ** 2. - 0.5 * (ga - 1.0))) ** 0.5
-    Mash[np.isinf(Ma)] = np.sqrt( (ga - 1.) / ga / 2.)
+
+    # Directly evaluate only when Ma > Malim and not inf
+    ii = np.isinf(Ma)
+    iv = Ma>Malimsh
+    iiv = np.logical_and(~ii, iv)
+
+    Mash = np.ones_like(Ma)  * np.nan  # When Ma < Malim
+    Mash[ii] = np.sqrt( (ga - 1.) / ga / 2.) # When Ma -> inf
+    Mash[iiv] = (To_T[iiv]
+                 / (ga * Ma[iiv] ** 2. - 0.5 * (ga - 1.0))) ** 0.5
     return Mash
 
 
 def Posh_Po_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
-    Posh_Po = np.asarray(np.ones_like(Ma) * np.nan)
     Malimsh = Malimsh_from_ga(ga)
-    with np.errstate(invalid='ignore'):
-        A = 0.5 * (ga + 1.) * Ma ** 2. / To_T
-        B = 2. * ga / (ga + 1.0) * Ma ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
-        Posh_Po[Ma >= Malimsh] = (A[Ma >= Malimsh] ** (ga / (ga - 1.0))
-                                  * B[Ma >= Malimsh] ** (-1. / (ga - 1.)))
-    Posh_Po[np.isinf(Ma)] = 0.
+
+    # Directly evaluate only when Ma > Malim and not inf
+    ii = np.isinf(Ma)
+    iv = Ma>Malimsh
+    iiv = np.logical_and(~ii, iv)
+
+    Posh_Po = np.ones_like(Ma) * np.nan
+    Posh_Po[ii] = 0.
+
+    A = 0.5 * (ga + 1.) * Ma[iiv] ** 2. / To_T[iiv]
+    B = 2. * ga / (ga + 1.0) * Ma[iiv] ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
+    Posh_Po[iiv] = (A ** (ga / (ga - 1.0)) * B ** (-1. / (ga - 1.)))
+
     return Posh_Po
 
 
@@ -334,11 +345,11 @@ def der_mcpTo_AP_from_Ma(Ma, ga):
 
 def der_A_Acrit_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
-    # Safe reciprocal of Ma
-    with np.errstate(divide='ignore'):
-        recip_Ma = 1. / Ma
-    return ((2. / (ga + 1.) * To_T) ** (0.5 * (ga + 1.) / (ga - 1.))
-            * (-recip_Ma ** 2. + 0.5 * (ga + 1.) * To_T ** -1.))
+    dA_Acrit = np.ones_like(Ma) * -np.inf
+    ii = ~(Ma == 0.)
+    dA_Acrit[ii] = ((2. / (ga + 1.) * To_T[ii]) ** (0.5 * (ga + 1.) / (ga - 1.))
+            * (-1./Ma[ii] ** 2. + 0.5 * (ga + 1.) * To_T[ii] ** -1.))
+    return dA_Acrit
 
 
 def der_Mash_from_Ma(Ma, ga):
