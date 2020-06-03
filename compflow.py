@@ -14,6 +14,7 @@ JB June 2020
 
 import numpy as np
 from scipy.optimize import newton
+from scipy.optimize import root_scalar
 
 def check_input(y, ga):
     if ga < 1.:
@@ -40,6 +41,11 @@ def to_Ma(var, Y_in, ga, supersonic=False):
     else:
         ich = np.full(np.shape(Y), False)
 
+    if supersonic:
+        Ma_guess = 1.5
+    else:
+        Ma_guess = 0.3
+
     # Don't try to solve if all are non-physical
     if np.any(~ich):
 
@@ -60,7 +66,9 @@ def to_Ma(var, Y_in, ga, supersonic=False):
 
             # Velocity and mass flow functions
             if var == 'mcpTo_APo':
-                Ma_out = Ma_from_mcpTo_APo(Y, ga, supersonic=supersonic)
+                ind = np.where(~ich)[0]
+                for i in ind:
+                    Ma_out[i] = Ma_from_mcpTo_APo(Y[i], ga, Ma_guess)
 
             if var == 'mcpTo_AP':
                 Ma_out = Ma_from_mcpTo_AP(Y, ga)
@@ -100,19 +108,25 @@ def Ma_from_V_cpTo(V_cpTo, ga):
     return np.sqrt( V_cpTo **2. / (ga - 1.) / (1. - 0.5 * V_cpTo **2.))
 
 
-def Ma_from_mcpTo_APo(mcpTo_APo, ga, supersonic=False):
+def Ma_from_mcpTo_APo(mcpTo_APo, ga, Ma_guess=0.3):
+
+    if True:
+        pass
+
+    mcpTo_APo_crit = mcpTo_APo_from_Ma(1., ga)
+
+    if mcpTo_APo > mcpTo_APo_crit:
+        return np.nan
+
     def f(x):
         return mcpTo_APo_from_Ma(x, ga) - mcpTo_APo
 
     def fp(x):
         return der_mcpTo_APo_from_Ma(x, ga)
 
-    if supersonic:
-        Ma_guess = 1.3 * np.ones_like(mcpTo_APo)
-    else:
-        Ma_guess = 0.3 * np.ones_like(mcpTo_APo)
+    rt = root_scalar(f, x0=Ma_guess, fprime=fp)
 
-    return newton(f, Ma_guess, fprime=fp)
+    return rt.root
 
 
 def Ma_from_mcpTo_AP(mcpTo_AP, ga):
@@ -190,10 +204,8 @@ def V_cpTo_from_Ma(Ma, ga):
 
 def mcpTo_APo_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
-    ii = ~np.isinf(Ma)
-    mcpTo_APo = np.zeros_like(Ma)  # Limit for Ma -> inf
-    mcpTo_APo[ii] = (ga / np.sqrt(ga - 1.0) * Ma[ii]
-                            * To_T[ii] ** (-0.5 * (ga + 1.0) / (ga - 1.0)))
+    mcpTo_APo = (ga / np.sqrt(ga - 1.0) * Ma
+                            * To_T ** (-0.5 * (ga + 1.0) / (ga - 1.0)))
     return mcpTo_APo
 
 
@@ -271,7 +283,9 @@ def from_Ma(var, Ma_in, ga):
         vout = V_cpTo_from_Ma(Ma, ga)
 
     elif var == 'mcpTo_APo':
-        vout = mcpTo_APo_from_Ma(Ma, ga)
+        vout = np.zeros_like(Ma)
+        ii = ~np.isinf(Ma)
+        vout[ii] = mcpTo_APo_from_Ma(Ma[ii], ga)
 
     elif var == 'mcpTo_AP':
         vout = mcpTo_AP_from_Ma(Ma, ga)
