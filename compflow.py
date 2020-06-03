@@ -1,7 +1,15 @@
 """Perfect gas compressible flow relations.
 
-TODO:
-Add per-variable functions to call without branching
+This module contains functions to convert back and forth between Mach number
+and various other non-dimensional flow quantities.
+
+Two interfaces are available. `to_Ma` and `from_Ma` take a string argument that
+selects the flow quantity to use, and perform some sanity checks on input data.
+There are also lower-level functions which assume the input data is a sensible
+numpy array and require no branching, the idea being that these are slightly
+faster.
+
+JB June 2020
 """
 
 import numpy as np
@@ -52,22 +60,26 @@ def to_Ma(var, Y_in, ga, supersonic=False):
 
             # Velocity and mass flow functions
             if var == 'mcpTo_APo':
-                return Ma_from_mcpTo_APo(Y, ga, supersonic=supersonic)
+                Ma_out = Ma_from_mcpTo_APo(Y, ga, supersonic=supersonic)
 
             if var == 'mcpTo_AP':
-                return Ma_from_mcpTo_AP(Y, ga)
+                Ma_out = Ma_from_mcpTo_AP(Y, ga)
 
             # Choking area
             if var == 'A_Acrit':
-                return Ma_from_A_Acrit(Y, ga, supersonic=supersonic)
+                Ma_out = Ma_from_A_Acrit(Y, ga, supersonic=supersonic)
 
             # Post-shock Mach
             if var == 'Mash':
-                return Ma_from_Mash(Y, ga)
+                Ma_out = Ma_from_Mash(Y, ga)
 
             # Shock pressure ratio
             if var == 'Posh_Po':
-                return Ma_from_Posh_Po(Y, ga)
+                Ma_out = Ma_from_Posh_Po(Y, ga)
+
+
+    if np.size(Ma_out)==1:
+        Ma_out = float(Ma_out)
 
     return Ma_out
 
@@ -246,39 +258,43 @@ def from_Ma(var, Ma_in, ga):
 
     # Simple ratios
     if var == 'To_T':
-        return To_T_from_Ma(Ma, ga)
+        vout = To_T_from_Ma(Ma, ga)
 
-    if var == 'Po_P':
-        return Po_P_from_Ma(Ma, ga)
+    elif var == 'Po_P':
+        vout = Po_P_from_Ma(Ma, ga)
 
-    if var == 'rhoo_rho':
-        return rhoo_rho_from_Ma(Ma, ga)
+    elif var == 'rhoo_rho':
+        vout = rhoo_rho_from_Ma(Ma, ga)
 
     # Velocity and mass flow functions
-    if var == 'V_cpTo':
-        return V_cpTo_from_Ma(Ma, ga)
+    elif var == 'V_cpTo':
+        vout = V_cpTo_from_Ma(Ma, ga)
 
-    if var == 'mcpTo_APo':
-        return mcpTo_APo_from_Ma(Ma, ga)
+    elif var == 'mcpTo_APo':
+        vout = mcpTo_APo_from_Ma(Ma, ga)
 
-    if var == 'mcpTo_AP':
-        return mcpTo_AP_from_Ma(Ma, ga)
+    elif var == 'mcpTo_AP':
+        vout = mcpTo_AP_from_Ma(Ma, ga)
 
     # Choking area
-    if var == 'A_Acrit':
-        return A_Acrit_from_Ma(Ma, ga)
+    elif var == 'A_Acrit':
+        vout = A_Acrit_from_Ma(Ma, ga)
 
     # Post-shock Mach
-    if var == 'Mash':
-        return Mash_from_Ma(Ma, ga)
+    elif var == 'Mash':
+        vout = Mash_from_Ma(Ma, ga)
 
     # Shock pressure ratio
-    if var == 'Posh_Po':
-        return Posh_Po_from_Ma(Ma, ga)
+    elif var == 'Posh_Po':
+        vout = Posh_Po_from_Ma(Ma, ga)
 
-    # Throw an error if we don't recognise the requested variable
-    raise ValueError('Invalid quantity requested: {}.'.format(var))
+    else:
+        raise ValueError('Incorrect quantity requested')
 
+    if np.size(vout)==1:
+        vout = float(vout)
+
+    return vout
 
 def der_To_T_from_Ma(Ma, ga):
     return (ga - 1.) * Ma
