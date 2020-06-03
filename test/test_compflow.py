@@ -21,6 +21,8 @@ for vi in ['To_T', 'Po_P', 'rhoo_rho']:
 var_test_sub = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP']
 var_test_sup = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP', 'Mash', 'Posh_Po']
 
+# Number of times to repeat the number crunching
+Nrep = 100
 
 #
 # Begin test functions
@@ -40,7 +42,8 @@ def test_Ma_0():
 # Compare code output to CUED Thermofluids Data Book
 def test_explicit_sub():
     for v in var_test_sub:
-        Ysub = cf.from_Ma(v, dat_sub['Ma'], ga)
+        for _ in range(Nrep):
+            Ysub = cf.from_Ma(v, dat_sub['Ma'], ga)
         err_sub = np.abs(Ysub / dat_sub[v] - 1.)
         imax = np.argmax(err_sub)
         assert err_sub[imax] < 0.005, \
@@ -50,7 +53,8 @@ def test_explicit_sub():
 
 def test_explicit_sup():
     for v in var_test_sup:
-        Ysup = cf.from_Ma(v, dat_sup['Ma'], ga)
+        for _ in range(Nrep):
+            Ysup = cf.from_Ma(v, dat_sup['Ma'], ga)
         err_sup = np.abs(Ysup / dat_sup[v] - 1.)
         imax = np.argmax(err_sup)
         assert err_sup[imax] < 0.005, \
@@ -60,7 +64,8 @@ def test_explicit_sup():
 
 def test_inverse_sub():
     for v in var_test_sub:
-        X = cf.to_Ma(v, dat_sub[v], ga)
+        for _ in range(Nrep):
+            X = cf.to_Ma(v, dat_sub[v], ga)
         err_sub = np.abs(X - dat_sub['Ma'])
         imax = np.argmax(err_sub)
         assert err_sub[imax] <= 0.01, \
@@ -70,7 +75,8 @@ def test_inverse_sub():
 
 def test_inverse_sup():
     for v in var_test_sup:
-        X = cf.to_Ma(v, dat_sup[v], ga, supersonic=True)
+        for _ in range(Nrep):
+            X = cf.to_Ma(v, dat_sup[v], ga, supersonic=True)
         err_sup = np.abs(X - dat_sup['Ma'])
         imax = np.argmax(err_sup)
         assert err_sup[imax] <= 0.01, \

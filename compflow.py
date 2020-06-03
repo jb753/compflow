@@ -53,7 +53,7 @@ def to_Ma(var, Y_in, ga, supersonic=False, validate=True):
 
         elif var == 'rhoo_rho':
             Ma_out[~ich] = Ma_from_rhoo_rho(Y[~ich], ga)
-            
+
         else:
 
             # Velocity and mass flow functions
