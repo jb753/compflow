@@ -66,9 +66,7 @@ def to_Ma(var, Y_in, ga, supersonic=False):
 
             # Velocity and mass flow functions
             if var == 'mcpTo_APo':
-                ind = np.where(~ich)[0]
-                for i in ind:
-                    Ma_out[i] = Ma_from_mcpTo_APo(Y[i], ga, Ma_guess)
+                Ma_out = Ma_from_mcpTo_APo(Y, ga, Ma_guess)
 
             if var == 'mcpTo_AP':
                 Ma_out = Ma_from_mcpTo_AP(Y, ga)
@@ -108,15 +106,11 @@ def Ma_from_V_cpTo(V_cpTo, ga):
     return np.sqrt( V_cpTo **2. / (ga - 1.) / (1. - 0.5 * V_cpTo **2.))
 
 
-def Ma_from_mcpTo_APo(mcpTo_APo, ga, Ma_guess=0.3):
-
-    if True:
-        pass
-
-    mcpTo_APo_crit = mcpTo_APo_from_Ma(1., ga)
+def Ma_from_mcpTo_APo_scalar(mcpTo_APo, ga, Ma_guess=0.3, mcpTo_APo_crit=np.inf):
 
     if mcpTo_APo > mcpTo_APo_crit:
         return np.nan
+
 
     def f(x):
         return mcpTo_APo_from_Ma(x, ga) - mcpTo_APo
@@ -127,6 +121,17 @@ def Ma_from_mcpTo_APo(mcpTo_APo, ga, Ma_guess=0.3):
     rt = root_scalar(f, x0=Ma_guess, fprime=fp)
 
     return rt.root
+
+def Ma_from_mcpTo_APo(mcpTo_APo, ga, Ma_guess=0.3):
+    def f(x):
+        return mcpTo_APo_from_Ma(x, ga) - mcpTo_APo
+
+    def fp(x):
+        return der_mcpTo_APo_from_Ma(x, ga)
+
+    return newton(f, Ma_guess * np.ones_like(mcpTo_APo), fprime=fp)
+
+
 
 
 def Ma_from_mcpTo_AP(mcpTo_AP, ga):
