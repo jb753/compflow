@@ -110,6 +110,85 @@ def Ma_from_rhoo_rho(rhoo_rho, ga):
     return np.sqrt((rhoo_rho ** (ga - 1.) - 1.) * 2. / (ga - 1.))
 
 
+def Ma_from_V_cpTo(V_cpTo, ga):
+    def f(x):
+        return V_cpTo_from_Ma(x, ga) - V_cpTo
+
+    def fp(x):
+        return der_V_cpTo_from_Ma(x, ga)
+
+    Ma_guess = 0.3 * np.ones_like(V_cpTo)
+
+    return newton(f, Ma_guess, fprime=fp)
+
+
+def Ma_from_mcpTo_APo(mcpTo_APo, ga, supersonic=False):
+    def f(x):
+        return mcpTo_APo_from_Ma(x, ga) - mcpTo_APo
+
+    def fp(x):
+        return der_mcpTo_APo_from_Ma(x, ga)
+
+    if supersonic:
+        Ma_guess = 1.3 * np.ones_like(mcpTo_APo)
+    else:
+        Ma_guess = 0.3 * np.ones_like(mcpTo_APo)
+
+    return newton(f, Ma_guess, fprime=fp)
+
+
+def Ma_from_mcpTo_AP(mcpTo_AP, ga):
+
+    def f(x):
+        return mcpTo_AP_from_Ma(x, ga) - mcpTo_AP
+
+    def fp(x):
+        return der_mcpTo_AP_from_Ma(x, ga)
+
+    Ma_guess = 0.3 * np.ones_like(mcpTo_AP)
+
+    return newton(f, Ma_guess, fprime=fp)
+
+
+def Ma_from_A_Acrit(A_Acrit, ga, supersonic=False):
+    def f(x):
+        return A_Acrit_from_Ma(x, ga) - A_Acrit
+
+    def fp(x):
+        return der_A_Acrit_from_Ma(x, ga)
+
+    if supersonic:
+        Ma_guess = 1.3 * np.ones_like(A_Acrit)
+    else:
+        Ma_guess = 0.3 * np.ones_like(A_Acrit)
+
+    return newton(f, Ma_guess, fprime=fp)
+
+
+def Ma_from_Mash(Mash, ga):
+    def f(x):
+        return Mash_from_Ma(x, ga) - Mash
+
+    def fp(x):
+        return der_Mash_from_Ma(x, ga)
+
+    Ma_guess = 1.3 * np.ones_like(Mash)
+
+    return newton(f, Ma_guess, fprime=fp)
+
+
+def Ma_from_Posh_Po(Posh_Po, ga):
+    def f(x):
+        return Posh_Po_from_Ma(x, ga) - Posh_Po
+
+    def fp(x):
+        return der_Posh_Po_from_Ma(x, ga)
+
+    Ma_guess = 1.3 * np.ones_like(Posh_Po)
+
+    return newton(f, Ma_guess, fprime=fp)
+
+
 def To_T_from_Ma(Ma, ga):
     return 1. + 0.5 * (ga - 1.0) * Ma ** 2.
 
@@ -175,7 +254,6 @@ def Posh_Po_from_Ma(Ma, ga):
 
 def from_Ma(var, Ma_in, ga_in, validate=True):
     """Evaluate compressible flow quantities as explicit functions of Ma."""
-
     if validate:
         ga = np.asarray_chkfinite(ga_in)
         Ma = np.asarray_chkfinite(Ma_in)

@@ -4,13 +4,29 @@ import numpy as np
 # Load validation data
 ga = 1.4
 # Subsonic
-var_sub = ['Ma', 'To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP', 'F_mcpTo', '4cfL_D', 'rhoVsq_2Po']
-dat_sub = {var_sub[i]: np.loadtxt('test/cued_data_book_subsonic.csv').reshape((-1, 10))[:, i]
-           for i in range(len(var_sub))}
+var_sub = [
+    'Ma',
+    'To_T',
+    'Po_P',
+    'rhoo_rho',
+    'V_cpTo',
+    'mcpTo_APo',
+    'mcpTo_AP',
+    'F_mcpTo',
+    '4cfL_D',
+    'rhoVsq_2Po']
+
+dat_sub = {var_sub[i]: np.loadtxt(
+    'test/cued_data_book_subsonic.csv').reshape((-1, 10))[:, i]
+    for i in range(len(var_sub))}
+
 # Supersonic
-var_sup = var_sub + ['Mash', 'Posh_Po', 'Psh_P', 'Posh_P', 'Tsh_T', 'nu', 'Ma2']
-dat_sup = {var_sup[i]: np.loadtxt('test/cued_data_book_supersonic.csv').reshape((-1, 17))[3:, i]
-           for i in range(len(var_sup))}
+var_sup = var_sub + ['Mash', 'Posh_Po',
+                     'Psh_P', 'Posh_P', 'Tsh_T', 'nu', 'Ma2']
+
+dat_sup = {var_sup[i]: np.loadtxt(
+    'test/cued_data_book_supersonic.csv').reshape((-1, 17))[3:, i]
+    for i in range(len(var_sup))}
 
 # Take reciprocals
 for vi in ['To_T', 'Po_P', 'rhoo_rho']:
@@ -19,7 +35,8 @@ for vi in ['To_T', 'Po_P', 'rhoo_rho']:
 
 # All variables which the module implements
 var_test_sub = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP']
-var_test_sup = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP', 'Mash', 'Posh_Po']
+var_test_sup = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo',
+                'mcpTo_AP', 'Mash', 'Posh_Po']
 
 # Number of times to repeat the number crunching
 Nrep = 100
@@ -28,15 +45,31 @@ Nrep = 100
 # Begin test functions
 
 # Check corner cases
+
+
 def test_Ma_0():
     # Expected values for Ma=0
     val0 = np.array([1., 1., 1., 0., 0., 0., np.nan, np.nan])
     Y0 = {var_test_sup[i]: val0[i] for i in range(len(var_test_sup))}
     for v in var_test_sup:
         # Ma = 0
-        assert np.isclose(cf.from_Ma(v, 0., ga), Y0[v], atol=1e-7, equal_nan=True)
+        assert np.isclose(
+            cf.from_Ma(
+                v,
+                0.,
+                ga),
+            Y0[v],
+            atol=1e-7,
+            equal_nan=True)
         if np.isfinite(Y0[v]):
-            assert np.isclose(cf.to_Ma(v, Y0[v], ga), 0.0, atol=1e-7, equal_nan=True)
+            assert np.isclose(
+                cf.to_Ma(
+                    v,
+                    Y0[v],
+                    ga),
+                0.0,
+                atol=1e-7,
+                equal_nan=True)
 
 
 # Compare code output to CUED Thermofluids Data Book
