@@ -7,18 +7,18 @@ Add per-variable functions to call without branching
 import numpy as np
 from scipy.optimize import newton
 
+def check_input(y, ga):
+    if ga < 1.:
+        raise ValueError('Specific heat ratio must be at least unity.')
+    if np.any(y < 0.):
+        raise ValueError('Input quantity must be positive.')
 
-def to_Ma(var, Y_in, ga, supersonic=False, validate=True):
+
+def to_Ma(var, Y_in, ga, supersonic=False):
     """Invert the Mach number relations by solving iteratively."""
 
-    if validate:
-        Y = np.asarray_chkfinite(Y_in)
-        if ga <= 0.:
-            raise ValueError('Specific heat ratio must be positive.')
-        if np.any(Y < 0.):
-            raise ValueError('Input quantity must be positive.')
-    else:
-        Y = np.asarray(Y_in)
+    Y = np.asarray(Y_in)
+    check_input(Y, ga)
 
     # Choose initial guess on sub or supersonic branch
     if supersonic or var in ['Posh_Po', 'Mash']:
@@ -30,7 +30,7 @@ def to_Ma(var, Y_in, ga, supersonic=False, validate=True):
 
     # Get indices for non-physical values
     if var == 'mcpTo_APo':
-        ich = Y > from_Ma('mcpTo_APo', 1., ga, validate=False)
+        ich = Y > from_Ma('mcpTo_APo', 1., ga)
     elif var in ['Po_P', 'To_T', 'rhoo_rho', 'A_Acrit']:
         ich = Y < 1.
     elif var in ['Posh_Po', 'Mash']:
@@ -53,6 +53,9 @@ def to_Ma(var, Y_in, ga, supersonic=False, validate=True):
 
         elif var == 'rhoo_rho':
             Ma_out[~ich] = Ma_from_rhoo_rho(Y[~ich], ga)
+
+        elif var == 'V_cpTo':
+            Ma_out[~ich] = Ma_from_V_cpTo(Y[~ich], ga)
 
         else:
 
@@ -111,15 +114,7 @@ def Ma_from_rhoo_rho(rhoo_rho, ga):
 
 
 def Ma_from_V_cpTo(V_cpTo, ga):
-    def f(x):
-        return V_cpTo_from_Ma(x, ga) - V_cpTo
-
-    def fp(x):
-        return der_V_cpTo_from_Ma(x, ga)
-
-    Ma_guess = 0.3 * np.ones_like(V_cpTo)
-
-    return newton(f, Ma_guess, fprime=fp)
+    return np.sqrt( V_cpTo **2. / (ga - 1.) / (1. - 0.5 * V_cpTo **2.))
 
 
 def Ma_from_mcpTo_APo(mcpTo_APo, ga, supersonic=False):
@@ -138,7 +133,6 @@ def Ma_from_mcpTo_APo(mcpTo_APo, ga, supersonic=False):
 
 
 def Ma_from_mcpTo_AP(mcpTo_AP, ga):
-
     def f(x):
         return mcpTo_AP_from_Ma(x, ga) - mcpTo_AP
 
@@ -204,14 +198,20 @@ def rhoo_rho_from_Ma(Ma, ga):
 
 
 def V_cpTo_from_Ma(Ma, ga):
-    To_T = To_T_from_Ma(Ma, ga)
-    return np.sqrt(ga - 1.0) * Ma * To_T ** -0.5
+    with np.errstate(invalid='ignore'):
+        V_cpTo = np.asarray(np.sqrt(
+            (ga - 1.0) * Ma * Ma / (1. + (ga - 1.)*Ma*Ma/2.) ))
+    V_cpTo[np.isinf(Ma)] = np.sqrt(2.)
+    return V_cpTo
 
 
 def mcpTo_APo_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
-    return (ga / np.sqrt(ga - 1.0) * Ma
-            * To_T ** (-0.5 * (ga + 1.0) / (ga - 1.0)))
+    with np.errstate(invalid='ignore'):
+        mcpTo_APo = np.asarray(ga / np.sqrt(ga - 1.0) * Ma
+                            * To_T ** (-0.5 * (ga + 1.0) / (ga - 1.0)))
+    mcpTo_APo[np.isinf(Ma)] = 0.
+    return mcpTo_APo
 
 
 def mcpTo_AP_from_Ma(Ma, ga):
@@ -236,34 +236,31 @@ def Mash_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
     Mash = np.asarray(np.ones_like(Ma) * np.nan)
     Malimsh = Malimsh_from_ga(ga)
-    Mash[Ma >= Malimsh] = (To_T[Ma >= Malimsh] / (ga * Ma[Ma >= Malimsh] ** 2.
-                                                  - 0.5 * (ga - 1.0))) ** 0.5
+    with np.errstate(invalid='ignore'):
+        Mash[Ma >= Malimsh] = (To_T[Ma >= Malimsh]
+                / (ga * Ma[Ma >= Malimsh] ** 2. - 0.5 * (ga - 1.0))) ** 0.5
+    Mash[np.isinf(Ma)] = np.sqrt( (ga - 1.) / ga / 2.)
     return Mash
 
 
 def Posh_Po_from_Ma(Ma, ga):
     To_T = To_T_from_Ma(Ma, ga)
     Posh_Po = np.asarray(np.ones_like(Ma) * np.nan)
-    A = 0.5 * (ga + 1.) * Ma ** 2. / To_T
-    B = 2. * ga / (ga + 1.0) * Ma ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
     Malimsh = Malimsh_from_ga(ga)
-    Posh_Po[Ma >= Malimsh] = (A[Ma >= Malimsh] ** (ga / (ga - 1.0))
-                              * B[Ma >= Malimsh] ** (-1. / (ga - 1.)))
+    with np.errstate(invalid='ignore'):
+        A = 0.5 * (ga + 1.) * Ma ** 2. / To_T
+        B = 2. * ga / (ga + 1.0) * Ma ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
+        Posh_Po[Ma >= Malimsh] = (A[Ma >= Malimsh] ** (ga / (ga - 1.0))
+                                  * B[Ma >= Malimsh] ** (-1. / (ga - 1.)))
+    Posh_Po[np.isinf(Ma)] = 0.
     return Posh_Po
 
 
-def from_Ma(var, Ma_in, ga_in, validate=True):
+def from_Ma(var, Ma_in, ga):
     """Evaluate compressible flow quantities as explicit functions of Ma."""
-    if validate:
-        ga = np.asarray_chkfinite(ga_in)
-        Ma = np.asarray_chkfinite(Ma_in)
-        if ga <= 0.:
-            raise ValueError('Specific heat ratio must be positive.')
-        if np.any(Ma < 0.):
-            raise ValueError('Mach number must be positive.')
-    else:
-        ga = np.asarray(ga_in)
-        Ma = np.asarray(Ma_in)
+
+    Ma = np.asarray(Ma_in)
+    check_input(Ma, ga)
 
     # Simple ratios
     if var == 'To_T':
@@ -369,19 +366,11 @@ def der_Posh_Po_from_Ma(Ma, ga):
     return der_Posh_Po
 
 
-def derivative_from_Ma(var, Ma_in, ga_in, validate=True):
+def derivative_from_Ma(var, Ma_in, ga):
     """Evaluate compressible flow quantity derivatives as explict functions """
 
-    if validate:
-        ga = np.asarray_chkfinite(ga_in)
-        Ma = np.asarray_chkfinite(Ma_in)
-        if ga <= 0.:
-            raise ValueError('Specific heat ratio must be positive.')
-        if np.any(Ma < 0.):
-            raise ValueError('Mach number must be positive.')
-    else:
-        ga = np.asarray(ga_in)
-        Ma = np.asarray(Ma_in)
+    Ma = np.asarray(Ma_in)
+    check_input(Ma, ga)
 
     # Simple ratios
     if var == 'To_T':

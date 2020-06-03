@@ -7,9 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Input data
-Ma = np.linspace(0., 3.)
+Ma = np.linspace(0., 10.)
 ga = np.array(1.4)
-varlist = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP', 'A_Acrit', 'Mash', 'Posh_Po']
+varlist = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo',
+           'mcpTo_AP', 'A_Acrit', 'Mash', 'Posh_Po']
 
 # Forwards calcuations
 Y = {v: cf.from_Ma(v, Ma, ga) for v in varlist}
