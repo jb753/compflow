@@ -84,7 +84,7 @@ def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
 
     # Check if a lookup table exists
     if use_lookup and not supersonic \
-            and not var in ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo']:
+        and not var in ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo']:
         if ga not in cache:
             cache[ga] = {}
         if var not in cache[ga]:
