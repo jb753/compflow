@@ -15,6 +15,40 @@ JB June 2020
 import numpy as np
 from scipy.optimize import newton
 from scipy.optimize import root_scalar
+from scipy.interpolate import interp1d
+
+def generate_lookup(var, ga, atol=1e-6):
+    """Generate a lookup table for quicker inversions."""
+
+    # Start with a small table, uniformly sampled
+    Nk = 100
+    y = np.linspace(0., 1., Nk) 
+    x = from_Ma(var, y, ga)
+
+    # Loop until we reach tolerance
+    err_max = np.inf
+    for i in range(50):
+
+        # Make interpolator
+        f = interp1d(x,y)
+
+        # Compute error in Mach at midpoints
+        xm = 0.5 * (x[:-1] + x[1:])
+        ym = to_Ma(var, xm, ga)
+        xm = from_Ma(var, ym, ga)
+        err = np.abs(f(xm) - ym)
+        err_max = np.max(err)
+
+        if err_max < atol:
+            break
+
+        # Find indices where err exceeds tolerance and add to table
+        x = np.sort(np.hstack((x,xm[err > atol])))
+        y = np.sort(np.hstack((y,ym[err > atol])))
+
+    return f
+
+
 
 def check_input(y, ga):
     if ga < 1.:
@@ -118,7 +152,7 @@ def Ma_from_mcpTo_APo_scalar(mcpTo_APo, ga, Ma_guess=0.3, mcpTo_APo_crit=np.inf)
     def fp(x):
         return der_mcpTo_APo_from_Ma(x, ga)
 
-    rt = root_scalar(f, x0=Ma_guess, fprime=fp)
+    rt = root_scalar(f, x0=Ma_guess, fprime=fp,rtol=5e-5)
 
     return rt.root
 
