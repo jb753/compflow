@@ -14,31 +14,37 @@ JB June 2020
 
 import numpy as np
 from scipy.optimize import newton
-from scipy.optimize import root_scalar
-from scipy.interpolate import interp1d
+from scipy.interpolate import UnivariateSpline
+
+# Define module-level global cache for lookup tables
+# Get a pointer to the module object instance
+cache = {}
+
 
 def generate_lookup(var, ga, atol=1e-6):
-    """Generate a lookup table for quicker inversions."""
+    """Generate a lookup table for faster inversions."""
 
     # Start with a small table, uniformly sampled
     Nk = 100
-    y = np.linspace(0., 1., Nk) 
+    y = np.linspace(0., 1., Nk)
     x = from_Ma(var, y, ga)
 
     # Loop until we reach tolerance
     err_max = np.inf
-    for i in range(50):
+    N_max = 50
+    for n in range(N_max):
 
         # Make interpolator
-        f = interp1d(x,y)
+        f = UnivariateSpline(x,y,k=1,s=0.,ext='raise')
 
         # Compute error in Mach at midpoints
         xm = 0.5 * (x[:-1] + x[1:])
-        ym = to_Ma(var, xm, ga)
+        ym = to_Ma(var, xm, ga, use_lookup=False)
         xm = from_Ma(var, ym, ga)
         err = np.abs(f(xm) - ym)
         err_max = np.max(err)
 
+        # Break out of loop if this is good enough
         if err_max < atol:
             break
 
@@ -49,75 +55,97 @@ def generate_lookup(var, ga, atol=1e-6):
     return f
 
 
-
 def check_input(y, ga):
     if ga < 1.:
         raise ValueError('Specific heat ratio must be at least unity.')
     if np.any(y < 0.):
         raise ValueError('Input quantity must be positive.')
 
+def get_invalid(var, Y, ga):
+    """Return indices for non-physical values."""
 
-def to_Ma(var, Y_in, ga, supersonic=False):
-    """Invert the Mach number relations by solving iteratively."""
-
-    Y = np.atleast_1d(Y_in)
-    check_input(Y, ga)
-
-    Ma_out = np.ones_like(Y) * np.nan
-
-    # Get indices for non-physical values
     if var == 'mcpTo_APo':
-        ich = Y > from_Ma('mcpTo_APo', 1., ga)
+        ich = Y > mcpTo_APo_from_Ma(1., ga)
     elif var in ['Po_P', 'To_T', 'rhoo_rho', 'A_Acrit']:
         ich = Y < 1.
     elif var in ['Posh_Po', 'Mash']:
         ich = Y > 1.
+    elif var in ['V_cpTo']:
+        ich = Y > np.sqrt(2)
+    elif var in ['Mash']:
+        ich = Y < np.sqrt((ga - 1.)/ 2. / ga)
     else:
         ich = np.full(np.shape(Y), False)
 
-    if supersonic:
-        Ma_guess = 1.5
-    else:
-        Ma_guess = 0.3
+    return ich
+
+def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
+    """Invert the Mach number relations by solving iteratively."""
+
+    # Check if a lookup table exists
+    if use_lookup and not supersonic \
+            and not var in ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo']:
+        if ga not in cache:
+            cache[ga] = {}
+        if var not in cache[ga]:
+            print('Generating lookup for', var)
+            cache[ga][var] = generate_lookup(var, ga)
+        try:
+            Ma = cache[ga][var](Y_in)
+            print('Used lookup', var)
+            return Ma
+
+        except ValueError:
+            print('Failed lookup', var)
+            pass
+
+    # Coerce input to at least a 1D numpy array, so we can use logical indexing
+    # and maths operations on it without thinking
+    Y = np.atleast_1d(Y_in)
+
+    check_input(Y, ga)
+
+    # nan indicates invalid or non-physical input
+    Ma_out = np.empty_like(Y) * np.nan
 
     # Don't try to solve if all are non-physical
-    if np.any(~ich):
+    iv = ~get_invalid(var, Y, ga)
+    if np.any(iv):
 
         # Check if an explicit inversion exists
         if var == 'To_T':
-            Ma_out[~ich] = Ma_from_To_T(Y[~ich], ga)
+            Ma_out[iv] = Ma_from_To_T(Y[iv], ga)
 
         elif var == 'Po_P':
-            Ma_out[~ich] = Ma_from_Po_P(Y[~ich], ga)
+            Ma_out[iv] = Ma_from_Po_P(Y[iv], ga)
 
         elif var == 'rhoo_rho':
-            Ma_out[~ich] = Ma_from_rhoo_rho(Y[~ich], ga)
+            Ma_out[iv] = Ma_from_rhoo_rho(Y[iv], ga)
 
         elif var == 'V_cpTo':
-            Ma_out[~ich] = Ma_from_V_cpTo(Y[~ich], ga)
+            Ma_out[iv] = Ma_from_V_cpTo(Y[iv], ga)
+
+        elif var == 'mcpTo_APo':
+            Ma_out[iv] = Ma_from_mcpTo_APo(Y[iv], ga, supersonic)
+
+        elif var == 'mcpTo_AP':
+            Ma_out[iv] = Ma_from_mcpTo_AP(Y[iv], ga)
+
+        elif var == 'A_Acrit':
+            Ma_out[iv] = Ma_from_A_Acrit(Y[iv], ga, supersonic)
+
+        elif var == 'Mash':
+            Ma_out[iv] = Ma_from_Mash(Y[iv], ga)
+
+        # Shock pressure ratio
+        elif var == 'Posh_Po':
+            Ma_out[iv] = Ma_from_Posh_Po(Y[iv], ga)
 
         else:
-
-            # Velocity and mass flow functions
-            if var == 'mcpTo_APo':
-                Ma_out = Ma_from_mcpTo_APo(Y, ga, Ma_guess)
-
-            if var == 'mcpTo_AP':
-                Ma_out = Ma_from_mcpTo_AP(Y, ga)
-
-            # Choking area
-            if var == 'A_Acrit':
-                Ma_out = Ma_from_A_Acrit(Y, ga, supersonic=supersonic)
-
-            # Post-shock Mach
-            if var == 'Mash':
-                Ma_out = Ma_from_Mash(Y, ga)
-
-            # Shock pressure ratio
-            if var == 'Posh_Po':
-                Ma_out = Ma_from_Posh_Po(Y, ga)
+            raise ValueError('Bad flow quantity requested.')
 
 
+    # Return to a scalar if required
     if np.size(Ma_out)==1:
         Ma_out = float(Ma_out)
 
@@ -140,82 +168,54 @@ def Ma_from_V_cpTo(V_cpTo, ga):
     return np.sqrt( V_cpTo **2. / (ga - 1.) / (1. - 0.5 * V_cpTo **2.))
 
 
-def Ma_from_mcpTo_APo_scalar(mcpTo_APo, ga, Ma_guess=0.3, mcpTo_APo_crit=np.inf):
-
-    if mcpTo_APo > mcpTo_APo_crit:
-        return np.nan
-
-
+def Ma_from_mcpTo_APo(mcpTo_APo, ga, supersonic=False):
     def f(x):
         return mcpTo_APo_from_Ma(x, ga) - mcpTo_APo
-
     def fp(x):
         return der_mcpTo_APo_from_Ma(x, ga)
-
-    rt = root_scalar(f, x0=Ma_guess, fprime=fp,rtol=5e-5)
-
-    return rt.root
-
-def Ma_from_mcpTo_APo(mcpTo_APo, ga, Ma_guess=0.3):
-    def f(x):
-        return mcpTo_APo_from_Ma(x, ga) - mcpTo_APo
-
-    def fp(x):
-        return der_mcpTo_APo_from_Ma(x, ga)
-
-    return newton(f, Ma_guess * np.ones_like(mcpTo_APo), fprime=fp)
-
-
+    if supersonic:
+        Ma_guess = 1.5* np.ones_like(mcpTo_APo)
+    else:
+        Ma_guess = 0.5* np.ones_like(mcpTo_APo)
+    return newton(f, Ma_guess , fprime=fp)
 
 
 def Ma_from_mcpTo_AP(mcpTo_AP, ga):
     def f(x):
         return mcpTo_AP_from_Ma(x, ga) - mcpTo_AP
-
     def fp(x):
         return der_mcpTo_AP_from_Ma(x, ga)
-
-    Ma_guess = 0.3 * np.ones_like(mcpTo_AP)
-
+    Ma_guess = 0.5 * np.ones_like(mcpTo_AP)
     return newton(f, Ma_guess, fprime=fp)
 
 
 def Ma_from_A_Acrit(A_Acrit, ga, supersonic=False):
     def f(x):
         return A_Acrit_from_Ma(x, ga) - A_Acrit
-
     def fp(x):
         return der_A_Acrit_from_Ma(x, ga)
-
     if supersonic:
-        Ma_guess = 1.3 * np.ones_like(A_Acrit)
+        Ma_guess = 1.5 * np.ones_like(A_Acrit)
     else:
-        Ma_guess = 0.3 * np.ones_like(A_Acrit)
-
+        Ma_guess = 0.5 * np.ones_like(A_Acrit)
     return newton(f, Ma_guess, fprime=fp)
 
 
 def Ma_from_Mash(Mash, ga):
     def f(x):
         return Mash_from_Ma(x, ga) - Mash
-
     def fp(x):
         return der_Mash_from_Ma(x, ga)
-
-    Ma_guess = 1.3 * np.ones_like(Mash)
-
+    Ma_guess = 1.5 * np.ones_like(Mash)
     return newton(f, Ma_guess, fprime=fp)
 
 
 def Ma_from_Posh_Po(Posh_Po, ga):
     def f(x):
         return Posh_Po_from_Ma(x, ga) - Posh_Po
-
     def fp(x):
         return der_Posh_Po_from_Ma(x, ga)
-
     Ma_guess = 1.5 * np.ones_like(Posh_Po)
-
     return newton(f, Ma_guess, fprime=fp)
 
 
