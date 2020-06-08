@@ -16,13 +16,21 @@ import numpy as np
 from scipy.optimize import newton
 from scipy.interpolate import UnivariateSpline
 
-# Define module-level global cache for lookup tables
-# Get a pointer to the module object instance
+# Initialise empty module-level cache for lookup tables
 cache = {}
 
 
-def generate_lookup(var, ga, atol=1e-6):
-    """Generate a lookup table for faster inversions."""
+def generate_lookup(var, ga, atol=1e-7):
+    """Generate a lookup table for faster inversions to Mach number.
+
+    Args:
+        var (str): Name of flow quantity to be used as independent variable.
+        ga (float): Ratio of specific heats.
+        atol (float): Absolute tolerance on Mach number, default 1e-7.
+
+    Returns:
+        f (InterpolatedUnivariateSpline): Callable interpolator that returns
+            Mach number as a function of the requested flow quantity."""
 
     # Start with a small table, uniformly sampled
     Nk = 100
@@ -38,8 +46,7 @@ def generate_lookup(var, ga, atol=1e-6):
         f = UnivariateSpline(x,y,k=1,s=0.,ext='raise')
 
         # Compute error in Mach at midpoints
-        xm = 0.5 * (x[:-1] + x[1:])
-        ym = to_Ma(var, xm, ga, use_lookup=False)
+        ym = 0.5 * (y[:-1] + y[1:])
         xm = from_Ma(var, ym, ga)
         err = np.abs(f(xm) - ym)
         err_max = np.max(err)
@@ -88,15 +95,12 @@ def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
         if ga not in cache:
             cache[ga] = {}
         if var not in cache[ga]:
-            print('Generating lookup for', var)
             cache[ga][var] = generate_lookup(var, ga)
         try:
             Ma = cache[ga][var](Y_in)
-            print('Used lookup', var)
             return Ma
 
         except ValueError:
-            print('Failed lookup', var)
             pass
 
     # Coerce input to at least a 1D numpy array, so we can use logical indexing
