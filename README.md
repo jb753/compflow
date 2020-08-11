@@ -22,7 +22,7 @@ in future versions is not guaranteed.
 
 compflow is available on the Python Package Index, so installation is as simple as,
 ```
-   $ python3 -m pip install compflow
+$ python3 -m pip install compflow
 ```
 
 We can then start doing some calculations,
@@ -41,7 +41,7 @@ Numpy arrays are also accepted as inputs,
 ```python
 >>> import numpy
 >>> Ma = numpy.array([0., 0.5, 1., 2.])
->>> compflow.from_Ma(var='Po_P', Ma_in=Ma, ga=1.4)
+>>> compflow.from_Ma('Po_P', Ma, 1.4)
 array([1.        , 1.18621264, 1.89292916, 7.82444907])
 ```
 
@@ -50,17 +50,17 @@ of the curve unless a flag is specified. Where no solution is possible, for
 example if the flow would choke, `nan` is returned,
 ```python 
 >>> capacity = [0.6, 2.]
->>> compflow.to_Ma(var='mcpTo_APo', var_in=capacity, ga=1.4)
+>>> compflow.to_Ma('mcpTo_APo', capacity, 1.4)
 array([0.28442265,        nan])
->>> compflow.to_Ma(var='mcpTo_APo', var_in=capacity, ga=1.4, supersonic=True)
+>>> compflow.to_Ma('mcpTo_APo', capacity, 1.4, supersonic=True)
 array([2.27028708,        nan])
 ```
 
 Lower level functions for each quantity are also available, but these are fussy
 about their inputs: some accept only Numpy arrays.
 ```python
->>> compflow.Po_P_from_Ma(0.3,1.4)
-1.064430286152938
+>>> compflow.Ma_from_Po_P(1.2,1.4)
+0.5170711949922853
 >>> compflow.A_Acrit_from_Ma(numpy.atleast_1d(0.3),1.4)
 array([2.03506526])
 ```
