@@ -99,7 +99,7 @@ def get_invalid(var, Y, ga):
 
     return ich
 
-def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
+def to_Ma(var, var_in, ga, supersonic=False, use_lookup=True):
     """Invert the Mach number relations by solving iteratively."""
 
     # Check if a lookup table exists
@@ -110,7 +110,7 @@ def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
         if var not in cache[ga]:
             cache[ga][var] = generate_lookup(var, ga)
         try:
-            Ma = cache[ga][var](Y_in)
+            Ma = cache[ga][var](var_in)
             return Ma
 
         except ValueError:
@@ -118,7 +118,7 @@ def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
 
     # Coerce input to at least a 1D numpy array, so we can use logical indexing
     # and maths operations on it without thinking
-    Y = np.atleast_1d(Y_in)
+    Y = np.atleast_1d(var_in)
 
     check_input(Y, ga)
 
