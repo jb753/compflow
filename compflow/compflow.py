@@ -32,10 +32,21 @@ def generate_lookup(var, ga, atol=1e-7):
         f (InterpolatedUnivariateSpline): Callable interpolator that returns
             Mach number as a function of the requested flow quantity."""
 
+    # Pick lower limit of table to avoid undefined values
+    if var == 'A_Acrit':
+        y0 = atol
+    else:
+        y0 = 0.
+
     # Start with a small table, uniformly sampled
-    Nk = 100
-    y = np.linspace(0., 1., Nk)
+    Nk = 10
+    y = np.linspace(y0, 1., Nk)
     x = from_Ma(var, y, ga)
+
+    # flip if needed
+    if x[-1]<x[0]:
+        x = np.flip(x)
+        y = np.flip(y)
 
     # Loop until we reach tolerance
     err_max = np.inf
@@ -48,6 +59,7 @@ def generate_lookup(var, ga, atol=1e-7):
         # Compute error in Mach at midpoints
         ym = 0.5 * (y[:-1] + y[1:])
         xm = from_Ma(var, ym, ga)
+
         err = np.abs(f(xm) - ym)
         err_max = np.max(err)
 
@@ -56,8 +68,9 @@ def generate_lookup(var, ga, atol=1e-7):
             break
 
         # Find indices where err exceeds tolerance and add to table
-        x = np.sort(np.hstack((x,xm[err > atol])))
-        y = np.sort(np.hstack((y,ym[err > atol])))
+        ierr = np.where(err > atol)[0]
+        x = np.insert(x,ierr+1,xm[ierr])
+        y = np.insert(y,ierr+1,ym[ierr])
 
     return f
 
@@ -91,7 +104,7 @@ def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
 
     # Check if a lookup table exists
     if use_lookup and not supersonic \
-        and not var in ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo']:
+        and not var in ['To_T', 'Po_P', 'Mash', 'Posh_Po', 'rhoo_rho', 'V_cpTo']:
         if ga not in cache:
             cache[ga] = {}
         if var not in cache[ga]:
@@ -154,7 +167,6 @@ def to_Ma(var, Y_in, ga, supersonic=False, use_lookup=True):
         Ma_out = float(Ma_out)
 
     return Ma_out
-
 
 def Ma_from_To_T(To_T, ga):
     return np.sqrt((To_T - 1.) * 2. / (ga - 1.))

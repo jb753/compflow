@@ -5,12 +5,17 @@
 import compflow as cf
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 
 # Input data
-Ma = np.linspace(0., 10.)
-ga = np.array(1.4)
+Ma = np.linspace(0., 4.)
+ga = 1.4
 varlist = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo',
            'mcpTo_AP', 'A_Acrit', 'Mash', 'Posh_Po']
+labels = [r'$T_0/T$', r'$P_0/P$', r'$\rho_0/\rho$', r'$V/c_pT_0$',
+          r'$\dot{m}\sqrt{c_pT_0}/AP_0$',
+          r'$\dot{m}\sqrt{c_pT_0}/AP$', r'$A/A_*$',
+          r'$\mathit{M\kern-.2ema}_\mathrm{sh}$', r'$P_{0,\mathrm{sh}}/P_0$']
 
 # Forwards calcuations
 Y = {v: cf.from_Ma(v, Ma, ga) for v in varlist}
@@ -21,13 +26,20 @@ Xsub = {v: cf.to_Ma(v, Y[v][(Ma <= 1.) & np.isfinite(Y[v])], ga)
 Xsup = {v: cf.to_Ma(v, Y[v][(Ma > 1.) & np.isfinite(Y[v])], ga, supersonic=True)
         for v in varlist}
 
+# Set up plotting
+rcParams['text.usetex'] = True
+rcParams['font.family'] = 'serif'
+rcParams['font.serif'] = 'cm'
+rcParams['axes.titlesize'] = 'medium'
+rcParams['font.serif'] = 'cm'
+
 # Create figure
 fig, ax = plt.subplots()
-fig.set_size_inches((7., 7.))
+fig.set_size_inches((7., 4.326))
 
 # Plot forwards
-for v in varlist:
-    ax.plot(Ma, Y[v], label=v.replace('_', ''))
+for v, lv in zip(varlist, labels):
+    ax.plot(Ma, Y[v], label=lv)
 
 # Plot inverted subsonic
 ax.set_prop_cycle(None)
@@ -40,12 +52,15 @@ for v in varlist:
     ax.plot(Xsup[v], Y[v][(Ma > 1.) & np.isfinite(Y[v])], '+')
 
 # Decorate plot
-ax.legend()
+ax.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
 ax.set_xlim(Ma[np.ix_([1, -1])])
+ax.set_xticks([0.,1.,2.,3.,4.])
+ax.set_yticks([0.,1.,2.,3.,4.])
 ax.set_ylim((0., 3.))
-ax.set_title(r'Compressible flow quantities for perfect gas with $\gamma = {}$'.format(ga))
-ax.set_xlabel(r'Mach Number, $\mathit{Ma}$')
-ax.set_ylabel(r'Quantity')
-fig.tight_layout()
+ax.set_title(
+    r'\noindent Compressible flow relations\\for a perfect gas with $\gamma = {}$'.format(ga))
+ax.set_xlabel(r'Mach Number, $\mathit{M\kern-.2ema}$')
+ax.set_ylabel(r'Non-dimensional Quantity')
+fig.tight_layout(pad=0.2)
 
 plt.show()
