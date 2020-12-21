@@ -109,11 +109,9 @@ Cf2py intent(in) m
 Cf2py intent(in) g
 Cf2py intent(out) y
 Cf2py intent(hide) n
-      REAL*8 M_GP1_GM1_2
       REAL*8 GM1_2
       REAL*8 G_SQ_GM1
       GM1_2 = (G-1.0D0)/2.0D0
-      M_GP1_GM1_2 = (G+1.0D0)/(G-1.0D0)/(-2.0D0)
       G_SQ_GM1 = G / SQRT(G-1.0D0)
       DO I=1,N
         Y(I)=G_SQ_GM1*M(I)*SQRT(1.0D0+GM1_2*M(I)*M(I))
@@ -121,7 +119,85 @@ Cf2py intent(hide) n
       END
 
 
+      SUBROUTINE A_ACRIT(Y,M,G,N)
+C    A_Acrit[ii] = ( 1./Ma[ii] * (2. / (ga + 1.0) * To_T[ii])
+C                    ** (0.5 * (ga + 1.0) / (ga - 1.0)))
+      INTEGER N
+      REAL*8 G
+      REAL*8 M(N)
+      REAL*8 Y(N)
+Cf2py intent(in) m
+Cf2py intent(in) g
+Cf2py intent(out) y
+Cf2py intent(hide) n
+      REAL*8 GP1_GM1_2
+      REAL*8 GM1_2
+      REAL*8 GP1_2
+      GM1_2 = (G-1.0D0)/2.0D0
+      GP1_GM1_2 = (G+1.0D0)/(G-1.0D0)/2.0D0
+      GP1_2 = (G+1.0D0)/2.0D0
+      DO I=1,N
+        Y(I)=(((1.0D0+GM1_2*M(I)*M(I))/GP1_2)**GP1_GM1_2)/M(I)
+      ENDDO
+      END
 
+
+      SUBROUTINE MASH(Y,M,G,N)
+      INTEGER N
+      REAL*8 G
+      REAL*8 M(N)
+      REAL*8 Y(N)
+Cf2py intent(in) m
+Cf2py intent(in) g
+Cf2py intent(out) y
+Cf2py intent(hide) n
+      REAL*8 GM1_2
+      REAL*8 MSQ
+      GM1_2 = (G-1.0D0)/2.0D0
+      DO I=1,N
+        MSQ = M(I)*M(I)
+        IF (MSQ.lt.1.0D-3) THEN
+            Y(I)=SQRT((1.0D0+GM1_2*MSQ)/(G*MSQ-GM1_2))
+        ELSE
+            Y(I)=SQRT((1.0D0/MSQ+GM1_2)/(G-GM1_2/MSQ))
+        ENDIF
+      ENDDO
+      END
+
+      SUBROUTINE POSH(Y,M,G,N)
+      INTEGER N
+      REAL*8 G
+      REAL*8 M(N)
+      REAL*8 Y(N)
+Cf2py intent(in) m
+Cf2py intent(in) g
+Cf2py intent(out) y
+Cf2py intent(hide) n
+      REAL*8 GM1_2
+      REAL*8 G_GM1
+      REAL*8 M_GM1
+      REAL*8 MSQ
+      REAL*8 GP1_2
+      REAL*8 G_GP1
+      REAL*8 GM1_GP1
+      REAL*8 A
+      REAL*8 B
+      GM1_2 = (G-1.0D0)/2.0D0
+      G_GM1 = G/(G-1.0D0)
+      G_GP1 = 2.0D0*G/(G+1.0D0)
+      M_GM1 = (-1.0D0)/(G-1.0D0)
+      GP1_2 = (G+1.0D0)/2.0D0
+      GM1_GP1 = (G-1.0D0)/(G+1.0D0)
+!     A = 0.5 * (ga + 1.) * Ma[iiv] ** 2. / To_T[iiv]
+!     B = 2. * ga / (ga + 1.0) * Ma[iiv] ** 2. - 1. / (ga + 1.0) * (ga - 1.0)
+!     Posh_Po[iiv] = (A ** (ga / (ga - 1.0)) * B ** (-1. / (ga - 1.)))
+      DO I=1,N
+        MSQ = M(I)*M(I)
+        A = GP1_2/(1.0D0/MSQ+GM1_2)
+        B = G_GP1 * MSQ - GM1_GP1
+        Y(I)=A ** G_GM1 * B ** M_GM1
+      ENDDO
+      END
 
 
 
