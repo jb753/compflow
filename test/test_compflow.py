@@ -57,6 +57,19 @@ def test_Ma_inf():
         print(v)
         assert np.isclose( cf.from_Ma( v, np.atleast_1d(np.inf), ga), Y0[v], atol=1e-7)
 
+def test_Ma_1():
+    """Check inversion for values near Ma = 1."""
+    dMa = 0.0001
+    Ma_fw = np.array([-dMa, 0., dMa]) + 1.
+    for v in var_test_sup:
+        Y_fw = cf.from_Ma( v, Ma_fw, ga)
+        Ma_bk = cf.to_Ma( v, Y_fw, ga)
+        if v in ['mcpTo_APo','A_Acrit']:
+            Ma_bk[-1] = cf.to_Ma( v, Y_fw[-1], ga, True)
+        err = Ma_fw-Ma_bk
+        print(v, err)
+        assert np.all(np.abs(err[~np.isnan(Ma_bk)])<1e-5)
+
 def test_explicit_sub():
     """Compare quantity values to CUED Data Book, subsonic."""
     for v in var_test_sub:
