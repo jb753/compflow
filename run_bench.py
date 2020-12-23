@@ -2,7 +2,7 @@ import numpy as np
 import timeit
 # from numba import njit
 from compflow_fort import posh as func_fort
-from compflow import Ma_from_Posh_Po as func_pure
+from compflow import Posh_Po_from_Ma as func_pure
 
 if __name__ == '__main__':
 
