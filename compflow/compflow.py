@@ -16,8 +16,11 @@ import numpy as np
 
 from scipy.interpolate import UnivariateSpline
 
-from .native_from_Ma import *
-from .native_to_Ma import *
+# from .native_from_Ma import *
+# from .native_to_Ma import *
+
+from .fortran_from_Ma import *
+from .fortran_to_Ma import *
 
 # Initialise empty module-level cache for lookup tables
 cache = {}
