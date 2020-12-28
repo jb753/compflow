@@ -14,14 +14,8 @@ JB June 2020
 
 import numpy as np
 
-from scipy.interpolate import UnivariateSpline
-
-# from .native_from_Ma import *
-# from .native_to_Ma import *
-
-from .fortran_from_Ma import *
-from .fortran_der_from_Ma import *
-from .fortran_to_Ma import *
+from . import native
+from .fortran import *
 
 # Initialise empty module-level cache for lookup tables
 cache = {}
@@ -38,6 +32,8 @@ def generate_lookup(var, ga, atol=1e-7):
     Returns:
         f (InterpolatedUnivariateSpline): Callable interpolator that returns
             Mach number as a function of the requested flow quantity."""
+
+    from scipy.interpolate import UnivariateSpline
 
     # Pick lower limit of table to avoid undefined values
     if var == 'A_Acrit':
@@ -106,7 +102,7 @@ def get_invalid(var, Y, ga):
 
     return ich
 
-def to_Ma(var, var_in, ga, supersonic=False, use_lookup=True):
+def to_Ma(var, var_in, ga, supersonic=False, use_lookup=False):
     """Invert the Mach number relations by solving iteratively."""
 
     # Check if a lookup table exists
@@ -197,9 +193,9 @@ def from_Ma(var, Ma_in, ga):
         vout = V_cpTo_from_Ma(Ma, ga)
 
     elif var == 'mcpTo_APo':
-        vout = np.zeros_like(Ma)
-        ii = ~np.isinf(Ma)
-        vout[ii] = mcpTo_APo_from_Ma(Ma[ii], ga)
+        vout = mcpTo_APo_from_Ma(Ma, ga)
+        # We handle infinite input data explicitly
+        vout[np.isinf(Ma)]=0.0
 
     elif var == 'mcpTo_AP':
         vout = mcpTo_AP_from_Ma(Ma, ga)
