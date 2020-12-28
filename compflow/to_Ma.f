@@ -125,6 +125,7 @@ C     INTERMEDIATE VARS
 C     ITERATION VARS
       INTEGER K
       REAL*8 MA
+      REAL*8 TO_T
       REAL*8 MANEW
       REAL*8 ERR
       REAL*8 F
@@ -153,9 +154,9 @@ C         UP TO 100 ITERATIONS UNTIL TOLERANCE MET
           DO WHILE (ERR.gt.TOL.and.K.lt.100)
           K = K + 1
 C         USE NEWTON'S METHOD FOR NEW GUESS OF MA
-          F = G_SQ_GM1 * MA * SQRT(1.0D0 + GM1_2 * MA*MA )
-          DF = G_SQ_GM1 * ( (1.0D0 + GM1_2 * MA * MA )**2.0D0 
-     &       - GM1_2 * MA * MA / SQRT(1.0D0 + GM1_2 * MA*MA))
+          TO_T = (1.0D0 + GM1_2 * MA * MA )
+          F = G_SQ_GM1 * MA * SQRT(TO_T)
+          DF = G_SQ_GM1 * ( TO_T **2.0D0 - GM1_2 *MA*MA / SQRT(TO_T))
           MANEW = MA - (F-X(I)) / DF
 C         GET ERROR AND UPDATE MA
           ERR = ABS(MANEW - MA)

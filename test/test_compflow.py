@@ -132,4 +132,5 @@ def test_derivative():
 
         # Check discrepancy
         err = dYdMa / dYdMa_numerical - 1.
+        print(v)
         assert np.max(err[np.isfinite(err)]) < 0.05

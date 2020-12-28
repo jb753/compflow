@@ -20,6 +20,7 @@ from scipy.interpolate import UnivariateSpline
 # from .native_to_Ma import *
 
 from .fortran_from_Ma import *
+from .fortran_der_from_Ma import *
 from .fortran_to_Ma import *
 
 # Initialise empty module-level cache for lookup tables
