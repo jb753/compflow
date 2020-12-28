@@ -84,6 +84,7 @@ def check_input(y, ga):
     if np.any(y < 0.):
         raise ValueError('Input quantity must be positive.')
 
+ 
 def get_invalid(var, Y, ga):
     """Return indices for non-physical values."""
 
