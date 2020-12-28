@@ -5,10 +5,6 @@ and other non-dimensional compressible flow quantities.
 
 ![Compressible flow quantities](sample/sample.svg)
 
-The features are more-or-less complete and development is now focussed on
-improving performance. The API should remain stable, but an absence of breakage
-in future versions is not guaranteed.
-
 ## Features
 
 * Evaluation of ten non-dimensional flow quantities as explicit functions of
@@ -16,7 +12,7 @@ in future versions is not guaranteed.
 * Iteration with Newton's method to invert the explicit relations and solve for
   Mach number;
 * Creation and caching of lookup tables to speed up inversions;
-* Fully-vectorised in both directions, accepts NumPy arrays.
+* Fortran-accelerated, fully-vectorised in both directions.
 
 ## Usage
 
@@ -70,6 +66,7 @@ array([2.03506526])
 Like many libraries, compflow was written because the existing options did not
 meet the authors' needs.
 
+* Super-fast because calculations are done in Fortran behind the scenes;
 * Implements non-dimensional mass flow or capacity, which is commonly used for
   internal flow calculations;
 * Simple, function-oriented interface;
@@ -78,7 +75,7 @@ meet the authors' needs.
 
 ## TODO
 
-* Investigate speedups using `numexpr`, `Numba`, and `PyPy`
+* Comprehensive documentation.
 
 James Brind
-August 2020
+December 2020

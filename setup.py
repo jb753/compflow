@@ -1,14 +1,20 @@
 import setuptools
+from numpy.distutils.core import setup
+from numpy.distutils.core import Extension
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-setuptools.setup(
-    name="compflow", # Replace with your own username
-    version="0.1.0",
+ext = [Extension(name = 'compflow_fort_from_Ma', sources = ['fortran/from_Ma.f']),
+       Extension(name = 'compflow_fort_der_from_Ma', sources = ['fortran/der_from_Ma.f']),
+       Extension(name = 'compflow_fort_to_Ma', sources = ['fortran/to_Ma.f'])]
+
+setup(
+    name="compflow",
+    version="0.2.0",
     author="James Brind",
-    author_email="brind.james@gmail.com",
-    description="Compressible flow tables",
+    author_email="jb753@cam.ac.uk",
+    description="Compressible aerodynamics library.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/jb753/compflow",
@@ -23,4 +29,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
+    ext_modules=ext
 )

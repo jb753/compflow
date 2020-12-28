@@ -1,8 +1,8 @@
 """This module wraps the fortran backend."""
 
-from . import fort_from_Ma
-from . import fort_der_from_Ma
-from . import fort_to_Ma
+import compflow_fort_from_Ma as fort_from_Ma
+import compflow_fort_der_from_Ma as fort_der_from_Ma
+import compflow_fort_to_Ma as fort_to_Ma
 
 # Functions from Ma
 To_T_from_Ma = fort_from_Ma.to_t
