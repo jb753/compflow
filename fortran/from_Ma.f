@@ -30,7 +30,7 @@ C     MAIN LOOP
       DO I=1,N
             Y(I) = 1.0D0 + GM1_2 * M(I) *M(I)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE PO_P(Y,M,G,N)
 C     (1-(G-1)/2*M^2)^(G/(G-1))
@@ -52,7 +52,7 @@ C     MAIN LOOP
       DO I=1,N
             Y(I) = (1.0D0 + GM1_2 *M(I)*M(I) )**G_GM1
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE RHOO_RHO(Y,M,G,N)
 C     (1-(G-1)/2*M^2)^(1/(G-1))
@@ -74,7 +74,7 @@ C     MAIN LOOP
       DO I=1,N
             Y(I) = (1.0D0 + GM1_2*M(I)*M(I))**RECIP_GM1
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE V_CPTO(Y,M,G,N)
 C     sqrt( (G-1)*M^2 / (1-(G-1)/2*M^2) )
@@ -102,7 +102,7 @@ C           NUMERIC FORM FOR HIGH MA
                 Y(I)=SQRT(GM1/(1.0D0/M(I)/M(I)+GM1_2))
             ENDIF
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MCPTO_APO(Y,M,G,N)
 C     G/SQRT(G-1)*M*(1+(G-1)/2*M^2)^(-(G+1)/(G-1)/2)
@@ -126,7 +126,7 @@ C     MAIN LOOP
       DO I=1,N
         Y(I)=G_SQ_GM1*M(I)*(1.0D0+GM1_2*M(I)*M(I))**M_GP1_GM1_2
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MCPTO_AP(Y,M,G,N)
 C     G/SQRT(G-1)*M*SQRT(1+(G-1)/2*M^2)
@@ -148,7 +148,7 @@ C     MAIN LOOP
       DO I=1,N
         Y(I)=G_SQ_GM1*M(I)*SQRT(1.0D0+GM1_2*M(I)*M(I))
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE A_ACRIT(Y,M,G,N)
 C     (2/(G+1)*(1+(G-1)/2*M^2))^((G+1)/(G-1)/2)/M
@@ -172,7 +172,7 @@ C     MAIN LOOP
       DO I=1,N
         Y(I)=(((1.0D0+GM1_2*M(I)*M(I))/GP1_2)**GP1_GM1_2)/M(I)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MASH(Y,M,G,N)
 C     ARGUMENTS
@@ -199,7 +199,7 @@ C       NUMERIC FORM FOR HIGH MA
             Y(I)=SQRT((1.0D0/MSQ+GM1_2)/(G-GM1_2/MSQ))
         ENDIF
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE POSH_PO(Y,M,G,N)
 C     ARGUMENTS
@@ -230,4 +230,4 @@ C     MAIN LOOP
         MSQ = M(I)*M(I)
         Y(I)=(GP1_2/(1.0D0/MSQ+GM1_2))**G_GM1*(G_GP1*MSQ-GM1_GP1)**M_GM1
       ENDDO
-      ENDSUBROUTINE
+      END

@@ -16,14 +16,16 @@ if __name__ == '__main__':
 
     ga = 1.4
     N = np.logspace(0,5,14).astype(int)
+    xt = 10**np.array(np.arange(6))
+    print(xt)
 
     dt_native = []
     dt_fort = []
     for N1 in N:
         N2 = 1000
         X = np.linspace(1.04,1.4,N1)
-        T_fort = timeit.Timer('cf.V_cpTo_from_Ma(X,ga)','from __main__ import X,ga,cf')
-        T_native = timeit.Timer('cf.native.V_cpTo_from_Ma(X,ga)','from __main__ import X,ga,cf')
+        T_fort = timeit.Timer('cf.mcpTo_APo_from_Ma(X,ga)','from __main__ import X,ga,cf')
+        T_native = timeit.Timer('cf.native.mcpTo_APo_from_Ma(X,ga)','from __main__ import X,ga,cf')
         res_fort = T_fort.autorange()
         res_native = T_native.autorange()
         dt_fort.append(res_fort[1]/res_fort[0])
@@ -37,10 +39,16 @@ if __name__ == '__main__':
     a.set_xlabel(r'Array Length, $n$')
     a.set_ylabel(r'Time per call, $\Delta t$/s')
     a.grid(True)
-    a.set_title('Benchmark for $V/\sqrt{c_pT_0}$')
+    a.set_title('Benchmark for forward $\dot{m}\sqrt{c_pT_0}/Ap_0$')
     a.legend()
-    f.tight_layout()
-    plt.savefig('bench_V_cpTo.svg')
+    a.set_xlim((1,1e5))
+    a.set_ylim((1e-7,1e-2))
+    a.set_xticks(xt)
+    f.tight_layout(pad=0.1)
+    plt.savefig('bench_forward.svg')
+
+    speedup = np.array(dt_fort)/np.array(dt_native)
+    print(speedup)
 
     # Initialise lookup table
     cf.to_Ma('mcpTo_APo',0.4,ga,use_lookup=True)
@@ -65,14 +73,22 @@ if __name__ == '__main__':
     f,a  = plt.subplots()
     f.set_size_inches((4., 3.))
     a.loglog(N,dt_native,label='Native')
-    a.loglog(N,dt_lookup,label='Lookup')
     a.loglog(N,dt_fort,label='Fortran')
+    a.loglog(N,dt_lookup,label='Lookup')
     a.set_xlabel(r'Array Length, $n$')
     a.set_ylabel(r'Time per call, $\Delta t$/s')
-    a.set_title('Benchmark for $\dot{m}\sqrt{c_pT_0}/Ap_0$')
+    a.set_title('Benchmark for invert $\dot{m}\sqrt{c_pT_0}/Ap_0$')
     a.grid(True)
     a.legend()
-    f.tight_layout()
-    plt.savefig('bench_mcpTo_APo.svg')
+    a.set_xlim((1,1e5))
+    a.set_xticks(xt)
+    a.set_ylim((1e-7,1e-1))
+    f.tight_layout(pad=0.1)
+    plt.savefig('bench_inverse.svg')
+
+    speedup = np.array(dt_fort)/np.array(dt_native)
+    print(speedup)
+    speedup = np.array(dt_lookup)/np.array(dt_native)
+    print(speedup)
 
 

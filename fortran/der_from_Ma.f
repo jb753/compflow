@@ -29,7 +29,7 @@ C     MAIN LOOP
       DO I=1,N
             Y(I) = GM1*M(I)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE PO_P(Y,M,G,N)
 C     ARGUMENTS
@@ -50,7 +50,7 @@ C     MAIN LOOP
       DO I=1,N
             Y(I) = G * M(I) *(1.0D0 + GM1_2 *M(I)*M(I) )**RECIP_GM1
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE RHOO_RHO(Y,M,G,N)
 C     ARGUMENTS
@@ -71,7 +71,7 @@ C     MAIN LOOP
       DO I=1,N
             Y(I) = M(I)*(1.0D0 + GM1_2*M(I)*M(I))**M_GM1
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE V_CPTO(Y,M,G,N)
 C     sqrt( (G-1)*M^2 / (1-(G-1)/2*M^2) )
@@ -98,7 +98,7 @@ C     MAIN LOOP
             Y(I)=SQRT_GM1*RECIP_SQRT_TO_T*(1.0D0-GM1_2*M(I)*M(I)
      &           *RECIP_SQRT_TO_T*RECIP_SQRT_TO_T)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MCPTO_APO(Y,M,G,N)
 C     G/SQRT(G-1)*M*(1+(G-1)/2*M^2)^(-(G+1)/(G-1)/2)
@@ -128,7 +128,7 @@ C     MAIN LOOP
         F = G_SQ_GM1 * M(I) * TO_T**M_GP1_GM1_2
         Y(I) = F *(1.0D0 - GP1_2*M(I)*M(I)/TO_T)/M(I) 
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MCPTO_AP(Y,M,G,N)
 C     G/SQRT(G-1)*M*SQRT(1+(G-1)/2*M^2)
@@ -152,7 +152,7 @@ C     MAIN LOOP
         SQRT_TO_T = SQRT(1.0D0 + GM1_2 * M(I) * M(I) )
         Y(I) = G_SQ_GM1* ( SQRT_TO_T + GM1_2 *M(I)*M(I) / SQRT_TO_T)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE A_ACRIT(Y,M,G,N)
 C     (2/(G+1)*(1+(G-1)/2*M^2))^((G+1)/(G-1)/2)/M
@@ -180,7 +180,7 @@ C     MAIN LOOP
         TO_T = 1.0D0 + GM1_2 * MSQ
         Y(I) = ((TO_T/GP1_2)**GP1_GM1_2)/MSQ*(-1.0D0/MSQ+GP1_2/TO_T)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MASH(Y,M,G,N)
 C     ARGUMENTS
@@ -207,7 +207,7 @@ C     MAIN LOOP
         C = G * (2.0D0*MSQ - 1.0D0) + 1.0D0
         Y(I)= -GP1**2.0D0 * M(I) / SQRT(2.0D0)/SQRT_TO_T  / C / SQRT(C)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE POSH_PO(Y,M,G,N)
 C     ARGUMENTS
@@ -248,4 +248,4 @@ C     MAIN LOOP
         C = -G*M(I)*(MSQ-1.0D0)*(MSQ-1.0D0)/TO_T/TO_T
         Y(I) = C *(A**P_GM1) *(B**G_GM1)
       ENDDO
-      ENDSUBROUTINE
+      END

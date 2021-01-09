@@ -36,7 +36,7 @@ C     MAIN LOOP
       DO I=1,N
             M(I) = SQRT((X(I)-1.0D0)/GM1_2)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE PO_P(M,X,G,N)
 C     ANALYTIC INVERSION SQRT((PO_P^((G-1)/G)-1)*2./(G-1))
@@ -58,7 +58,7 @@ C     MAIN LOOP
       DO I=1,N
             M(I) = SQRT((X(I)**GM1_G-1.0D0)/GM1_2)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE RHOO_RHO(M,X,G,N)
 C     ANALYTIC INVERSION SQRT((RHOO_RHO^(G-1)-1)*2./(G-1))
@@ -80,7 +80,7 @@ C     MAIN LOOP
       DO I=1,N
             M(I) = SQRT((X(I)**GM1-1.0D0)/GM1_2)
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE V_CPTO(M,X,G,N)
 C     ANALYTIC INVERSION SQRT( V_cpTo^2/(G-1)/(1-0.5*V_cpTo^2))
@@ -102,7 +102,7 @@ C     MAIN LOOP
         XSQ = X(I)*X(I)
         M(I) = SQRT(XSQ/GM1/(1.0D0 - XSQ/2.0D0))
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MCPTO_AP(M,X,G,N)
 C     NUMERIC INVERSION USING NEWTON'S METHOD
@@ -161,7 +161,7 @@ C         USE NEWTON'S METHOD FOR NEW GUESS OF MA
 C         GET ERROR AND UPDATE MA
           ERR = ABS(MANEW - MA)
           MA = MANEW
-          END DO
+          ENDDO
 C         RETURN NAN IF NOT CONVERGED
           IF (ERR.lt.TOL) THEN
               M(I) = MA
@@ -169,7 +169,7 @@ C         RETURN NAN IF NOT CONVERGED
               M(I) = NAN
           ENDIF
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE MCPTO_APO(M,X,G,SUP,N)
 C     NUMERIC INVERSION USING NEWTON'S METHOD
@@ -223,31 +223,31 @@ C       RETURN NAN IF CHOKED
         IF (X(I).gt.FCRIT) THEN
             M(I) = NAN
         ELSE
-        IF (SUP) THEN
-            MA = 1.5D0
-        ELSE
-            MA = 0.5D0
-        ENDIF
-        K = 0
-        ERR = HUGE(ERR)
-        DO WHILE (ERR.gt.TOL.and.K.lt.100)
+            IF (SUP) THEN
+                MA = 1.5D0
+            ELSE
+                MA = 0.5D0
+            ENDIF
+            K = 0
+            ERR = HUGE(ERR)
+            DO WHILE (ERR.gt.TOL.and.K.lt.100)
 
-        K = K + 1
-        TO_T = (1.0D0 + GM1_2 * MA*MA)
-        F = G_SQ_GM1 * MA * TO_T**M_GP1_GM1_2
-        DF = F *(1.0D0 - GP1_2*MA*MA/TO_T)/MA 
-        MANEW = MA - (F-X(I)) / DF
-        ERR = ABS(MANEW - MA)
-        MA = MANEW
-        END DO
-        IF (ERR.lt.TOL) THEN
-            M(I) = MA
-        ELSE
-            M(I) = NAN
-        ENDIF
+            K = K + 1
+            TO_T = (1.0D0 + GM1_2 * MA*MA)
+            F = G_SQ_GM1 * MA * TO_T**M_GP1_GM1_2
+            DF = F *(1.0D0 - GP1_2*MA*MA/TO_T)/MA 
+            MANEW = MA - (F-X(I)) / DF
+            ERR = ABS(MANEW - MA)
+            MA = MANEW
+            ENDDO
+            IF (ERR.lt.TOL) THEN
+                M(I) = MA
+            ELSE
+                M(I) = NAN
+            ENDIF
         ENDIF
       ENDDO
-      ENDSUBROUTINE
+      END
 C
       SUBROUTINE A_ACRIT(M,X,G,SUP,N)
 C     NUMERIC INVERSION USING NEWTON'S METHOD
@@ -310,14 +310,14 @@ C     MAIN LOOP
         MANEW = MA - (F-X(I)) / DF
         ERR = ABS(MANEW - MA)
         MA = MANEW
-        END DO
+        ENDDO
         IF (ERR.lt.TOL) THEN
             M(I) = MA
         ELSE
             M(I) = NAN
         ENDIF
       ENDDO
-      ENDSUBROUTINE
+      END
 
       SUBROUTINE POSH_PO(M,X,G,N)
 C     NUMERIC INVERSION USING NEWTON'S METHOD
@@ -387,7 +387,7 @@ C     MAIN LOOP
         MANEW = MA - (F-X(I)) / DF
         ERR = ABS(MANEW - MA)
         MA = MANEW
-        END DO
+        ENDDO
         IF (ERR.lt.TOL) THEN
             M(I) = MA
         ELSE
@@ -395,7 +395,7 @@ C     MAIN LOOP
         ENDIF
         ENDIF
       ENDDO
-      ENDSUBROUTINE
+      END
 
       SUBROUTINE MASH(M,X,G,N)
 C     NUMERIC INVERSION USING NEWTON'S METHOD
@@ -460,7 +460,7 @@ C       RETURN NAN FOR PRE SHOCK MA LESS THAN UNITY
         MA = MANEW
 
 
-        END DO
+        ENDDO
 
         IF (ERR.lt.TOL) THEN
             M(I) = MA
@@ -469,4 +469,4 @@ C       RETURN NAN FOR PRE SHOCK MA LESS THAN UNITY
         ENDIF
         ENDIF
       ENDDO
-      ENDSUBROUTINE
+      END
