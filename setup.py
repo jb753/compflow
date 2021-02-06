@@ -11,7 +11,7 @@ ext = [Extension(name = 'compflow_fort_from_Ma', sources = ['fortran/from_Ma.f']
 
 setup(
     name="compflow",
-    version="0.2.0",
+    version="0.2.1",
     author="James Brind",
     author_email="jb753@cam.ac.uk",
     description="Compressible aerodynamics library.",
