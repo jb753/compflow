@@ -21,6 +21,25 @@ from .fortran import *
 cache = {}
 
 
+LIMITS = {
+    'Ma': (0., np.inf),
+    'ga': (1., 5./3.),
+    'To_T': (1., np.inf),
+    'Po_P': (1., np.inf),
+    'rhoo_rho': (1., np.inf),
+    'V_cpTo': (1., np.sqrt(2.)),
+    'mcpTo_APo': (0., np.inf),  # Upper limit depends on gamma
+    'mcpTo_AP': (0., np.inf),
+    'A_Acrit': (1., np.inf),
+    'Mash': (0.,1.),
+    'Posh_Po': (0.,1.),
+}
+"""Dictionary of physically-realisable limits for each non-dimensional
+group. Note that there will be a finite limit on
+:math:`\dot{m}\sqrt{c_pTo}/Ap_0` which is a function of specific heat ratio for :math:`\gamma
+> 1`. """
+
+
 def generate_lookup(var, ga, atol=1e-7):
     """Generate a lookup table for faster inversions to Mach number.
 
@@ -78,7 +97,36 @@ def generate_lookup(var, ga, atol=1e-7):
     return f
 
 
-def check_input(y, ga):
+def check_input(x, ga, xlim=(0.,np.inf)):
+    r"""
+    Raise an error if input data is outside valid physical limits.
+
+    Statistical mechanics shows that, depending on the number of degrees of
+    freedom of the molecule, the ratio of specific heats must satisfy
+    :math:`1 \le \gamma \le {5}/{3}`.
+
+    The range of sensible values for all non-dimensional groups considered in
+    this library are defined in :py:data:`LIMITS`
+
+
+
+    Parameters
+    ----------
+    x : array
+        Mach number or any other non-dimensional group.
+    ga : float
+        Ratio of specific heat capacities.
+    xlim : 2-tuple
+        Valid upper and lower limits for non-dimensional group `x`.
+
+    Raises
+    ------
+    ValueError
+        If any of the input data falls outside limits.
+
+
+    """
+
     if ga < 1.:
         raise ValueError('Specific heat ratio must be at least unity.')
     if np.any(y < 0.):

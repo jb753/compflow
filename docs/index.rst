@@ -1,20 +1,16 @@
-.. compflow documentation master file, created by
-   sphinx-quickstart on Sat Feb  6 16:18:39 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+compflow Documentation
+======================
 
-Welcome to compflow's documentation!
-====================================
+The compflow library contains functions to convert back and forth between Mach
+number and other non-dimensional groups in compressible flows. By using a
+NumPy--Fortran interface, the code is vectorised and lightning-fast.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+
+   usage
+   api
+
+.. image:: _static/sample.png
 
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
