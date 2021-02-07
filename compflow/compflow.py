@@ -129,7 +129,7 @@ def check_input(x, ga, xlim=(0.,np.inf)):
 
     if ga < 1.:
         raise ValueError('Specific heat ratio must be at least unity.')
-    if np.any(y < 0.):
+    if np.any(x < 0.):
         raise ValueError('Input quantity must be positive.')
 
  

@@ -116,7 +116,7 @@ def mcpTo_APo_from_Ma(Ma,ga):
     return fort_from_Ma.mcpto_apo(Ma,ga)
 
 def mcpTo_AP_from_Ma(Ma,ga):
-    r"""Static pressure variant of normalised mass flow as function of Mach number.
+    r"""Static normalised mass flow as function of Mach number.
 
     .. math::
 
@@ -159,7 +159,7 @@ def A_Acrit_from_Ma(Ma,ga):
     return fort_from_Ma.a_acrit(Ma,ga)
 
 def Mash_from_Ma(Ma,ga):
-    r"""Post-shock Mach number as function of (pre-shock) Mach number.
+    r"""Post-shock Mach number as function of Mach number.
 
     .. math::
 
@@ -181,7 +181,7 @@ def Mash_from_Ma(Ma,ga):
 
 
 def Posh_Po_from_Ma(Ma,ga):
-    r"""Shock stagnation pressure ratio as function of (pre-shock) Mach number.
+    r"""Shock stagnation pressure ratio as function of Mach number.
 
     .. math::
 
@@ -202,6 +202,28 @@ def Posh_Po_from_Ma(Ma,ga):
     """
     return fort_from_Ma.posh_po(Ma,ga)
 
+
+# Inversions to Ma
+
+def Ma_from_To_T(To_T, ga):
+    return fort_to_Ma.to_t(To_T, ga)
+def Ma_from_Po_P(Po_P, ga):
+    return fort_to_Ma.po_p(Po_P, ga)
+def Ma_from_rhoo_rho(rhoo_rho, ga):
+    return fort_to_Ma.rhoo_rho(rhoo_rho, ga)
+def Ma_from_V_cpTo(V_cpTo, ga):
+    return fort_to_Ma.v_cpto(V_cpTo, ga)
+def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
+    return fort_to_Ma.mcpto_apo(mcpTo_APo, ga, sup)
+def Ma_from_mcpTo_AP(mcpTo_AP, ga):
+    return fort_to_Ma.mcpto_ap(mcpTo_AP, ga)
+def Ma_from_A_Acrit(A_Acrit, ga):
+    return fort_to_Ma.a_acrit(A_Acrit, ga)
+def Ma_from_Mash(Mash, ga):
+    return fort_to_Ma.mash(Mash, ga)
+def Ma_from_Posh_Po(Posh_Po, ga):
+    return fort_to_Ma.posh_po(Posh_Po, ga)
+
 # Derivatives from Ma
 der_To_T_from_Ma = fort_der_from_Ma.to_t
 der_Po_P_from_Ma = fort_der_from_Ma.po_p
@@ -212,14 +234,3 @@ der_mcpTo_AP_from_Ma = fort_der_from_Ma.mcpto_ap
 der_A_Acrit_from_Ma = fort_der_from_Ma.a_acrit
 der_Mash_from_Ma = fort_der_from_Ma.mash
 der_Posh_Po_from_Ma = fort_der_from_Ma.posh_po
-
-# Inversions to Ma
-Ma_from_To_T = fort_to_Ma.to_t
-Ma_from_Po_P = fort_to_Ma.po_p
-Ma_from_rhoo_rho = fort_to_Ma.rhoo_rho
-Ma_from_V_cpTo = fort_to_Ma.v_cpto
-Ma_from_mcpTo_APo = fort_to_Ma.mcpto_apo
-Ma_from_mcpTo_AP = fort_to_Ma.mcpto_ap
-Ma_from_A_Acrit = fort_to_Ma.a_acrit
-Ma_from_Mash = fort_to_Ma.mash
-Ma_from_Posh_Po = fort_to_Ma.posh_po
