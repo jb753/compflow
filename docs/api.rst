@@ -31,4 +31,27 @@ Evaluation from Mach number
 Inversion to Mach number
 ************************
 
-.. autofunction:: compflow.check_input
+.. autosummary::
+
+   compflow.Ma_from_To_T
+   compflow.Ma_from_Po_P
+   compflow.Ma_from_rhoo_rho
+   compflow.Ma_from_V_cpTo
+   compflow.Ma_from_mcpTo_APo
+   compflow.Ma_from_mcpTo_AP
+   compflow.Ma_from_A_Acrit
+   compflow.Ma_from_Mash
+   compflow.Ma_from_Posh_Po
+
+
+.. autofunction:: compflow.Ma_from_To_T
+.. autofunction:: compflow.Ma_from_Po_P
+.. autofunction:: compflow.Ma_from_rhoo_rho
+.. autofunction:: compflow.Ma_from_V_cpTo
+.. autofunction:: compflow.Ma_from_mcpTo_APo
+.. autofunction:: compflow.Ma_from_mcpTo_AP
+.. autofunction:: compflow.Ma_from_A_Acrit
+.. autofunction:: compflow.Ma_from_Mash
+.. autofunction:: compflow.Ma_from_Posh_Po
+
+
