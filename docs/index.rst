@@ -12,5 +12,7 @@ NumPy--Fortran interface, the code is vectorised and lightning-fast.
    api
 
 .. image:: _static/sample.png
+   :align: center
+   :width: 80%
 
 

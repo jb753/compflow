@@ -1,8 +1,16 @@
 """This module wraps the fortran backend."""
+import numpy as np
 
 import compflow_fort_from_Ma as fort_from_Ma
 import compflow_fort_der_from_Ma as fort_der_from_Ma
 import compflow_fort_to_Ma as fort_to_Ma
+
+# If the input is a scalar, then put it back to scalar afterwards
+def _restore_scalar(func, args):
+	if np.shape(args[0]) == ():
+		return(func(*args)[0])
+	else:
+		return(func(*args))
 
 # Functions from Ma
 def To_T_from_Ma(Ma, ga):
@@ -24,7 +32,7 @@ def To_T_from_Ma(Ma, ga):
     To_T : array
         Stagnation temperature ratio, :math:`T_0/T`.
     """
-    return fort_from_Ma.to_t(Ma,ga)
+    return _restore_scalar(fort_from_Ma.to_t, (Ma,ga))
 
 def Po_P_from_Ma(Ma,ga):
     r"""Stagnation pressure ratio as function of Mach number.
@@ -46,7 +54,7 @@ def Po_P_from_Ma(Ma,ga):
     Po_P : array
         Stagnation pressure ratio, :math:`p_0/p`.
     """
-    return fort_from_Ma.po_p(Ma,ga)
+    return _restore_scalar(fort_from_Ma.po_p, (Ma,ga))
 
 def rhoo_rho_from_Ma(Ma,ga):
     r"""Stagnation density ratio as function of Mach number.
@@ -68,7 +76,7 @@ def rhoo_rho_from_Ma(Ma,ga):
     rhoo_rho : array
         Stagnation density ratio, :math:`\rho_0/\rho`.
     """
-    return fort_from_Ma.rhoo_rho(Ma,ga)
+    return _restore_scalar(fort_from_Ma.rhoo_rho, (Ma,ga))
 
 def V_cpTo_from_Ma(Ma,ga):
     r"""Normalised velocity as function of Mach number.
@@ -90,7 +98,7 @@ def V_cpTo_from_Ma(Ma,ga):
     V_cpTo : array
         Normalised velocity, :math:`V/\sqrt{c_p T_0}`.
     """
-    return fort_from_Ma.v_cpto(Ma,ga)
+    return _restore_scalar(fort_from_Ma.v_cpto, (Ma,ga))
 
 def mcpTo_APo_from_Ma(Ma,ga):
     r"""Normalised mass flow as function of Mach number.
@@ -112,7 +120,7 @@ def mcpTo_APo_from_Ma(Ma,ga):
     mcpTo_APo : array
         Normalised mass flow, :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`.
     """
-    return fort_from_Ma.mcpto_apo(Ma,ga)
+    return _restore_scalar(fort_from_Ma.mcpto_apo, (Ma,ga))
 
 def mcpTo_AP_from_Ma(Ma,ga):
     r"""Static normalised mass flow as function of Mach number.
@@ -134,7 +142,7 @@ def mcpTo_AP_from_Ma(Ma,ga):
     mcpTo_AP : array
         Static pressure variant of normalised mass flow, :math:`{\dot{m}\sqrt{c_p T_0}}/{A p}`.
     """
-    return fort_from_Ma.mcpto_ap(Ma,ga)
+    return _restore_scalar(fort_from_Ma.mcpto_ap, (Ma,ga))
 
 def A_Acrit_from_Ma(Ma,ga):
     r"""Ratio of area to choking area as function of Mach number.
@@ -155,7 +163,7 @@ def A_Acrit_from_Ma(Ma,ga):
     A_Acrit : array
         Ratio of area to choking area, :math:`A/A_*`.
     """
-    return fort_from_Ma.a_acrit(Ma,ga)
+    return _restore_scalar(fort_from_Ma.a_acrit, (Ma,ga))
 
 def Mash_from_Ma(Ma,ga):
     r"""Post-shock Mach number as function of Mach number.
@@ -176,14 +184,14 @@ def Mash_from_Ma(Ma,ga):
     Mash : array
         Post-shock Mach number, :math:`\Ma_\mathrm{sh}`.
     """
-    return fort_from_Ma.mash(Ma,ga)
+    return _restore_scalar(fort_from_Ma.mash, (Ma,ga))
 
 def Posh_Po_from_Ma(Ma,ga):
     r"""Shock stagnation pressure ratio as function of Mach number.
 
     .. math::
 
-        p_{0\mathrm{sh}}  = \left(\frac{\frac{\gamma + 1}{2}\Ma^2}{1 + \frac{\gamma - 1}{2} \Ma^2} \right)^{\frac{\gamma}{\gamma-1}}
+        p_{0\mathrm{sh}}/p_0  = \left(\frac{\frac{\gamma + 1}{2}\Ma^2}{1 + \frac{\gamma - 1}{2} \Ma^2} \right)^{\frac{\gamma}{\gamma-1}}
         \left( \frac{2 \gamma }{\gamma + 1} \Ma^2 - \frac{\gamma - 1}{\gamma + 1}\right)^{\frac{-1}{\gamma -1}}
 
     Parameters
@@ -198,7 +206,7 @@ def Posh_Po_from_Ma(Ma,ga):
     Posh_Po : array
         Shock stagnation pressure ratio, :math:`p_{0\mathrm{sh}}/p_0`.
     """
-    return fort_from_Ma.posh_po(Ma,ga)
+    return _restore_scalar(fort_from_Ma.posh_po, (Ma,ga))
 
 
 # Inversions to Ma
@@ -226,7 +234,7 @@ def Ma_from_To_T(To_T, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.to_t(To_T, ga)
+    return _restore_scalar(fort_to_Ma.to_t, (To_T, ga))
 
 def Ma_from_Po_P(Po_P, ga):
     r"""Mach number as function of stagnation pressure ratio.
@@ -251,7 +259,7 @@ def Ma_from_Po_P(Po_P, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.po_p(Po_P, ga)
+    return _restore_scalar(fort_to_Ma.po_p, (Po_P, ga))
 
 def Ma_from_rhoo_rho(rhoo_rho, ga):
     r"""Mach number as function of stagnation density ratio.
@@ -276,7 +284,7 @@ def Ma_from_rhoo_rho(rhoo_rho, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.rhoo_rho(rhoo_rho, ga)
+    return _restore_scalar(fort_to_Ma.rhoo_rho, (rhoo_rho, ga))
 
 def Ma_from_V_cpTo(V_cpTo, ga):
     r"""Mach number as function of normalised velocity.
@@ -301,7 +309,7 @@ def Ma_from_V_cpTo(V_cpTo, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.v_cpto(V_cpTo, ga)
+    return _restore_scalar(fort_to_Ma.v_cpto, (V_cpTo, ga))
 
 def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
     r"""Mach number as function of normalised mass flow.
@@ -338,7 +346,7 @@ def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.mcpto_apo(mcpTo_APo, ga, sup)
+    return _restore_scalar(fort_to_Ma.mcpto_apo, (mcpTo_APo, ga, sup))
 
 def Ma_from_mcpTo_AP(mcpTo_AP, ga):
     r"""Mach number as function of static normalised mass flow.
@@ -367,7 +375,7 @@ def Ma_from_mcpTo_AP(mcpTo_AP, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.mcpto_ap(mcpTo_AP, ga)
+    return _restore_scalar(fort_to_Ma.mcpto_ap, (mcpTo_AP, ga))
 
 def Ma_from_A_Acrit(A_Acrit, ga):
     r"""Mach number as function of area to choking area ratio.
@@ -395,7 +403,7 @@ def Ma_from_A_Acrit(A_Acrit, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.a_acrit(A_Acrit, ga)
+    return _restore_scalar(fort_to_Ma.a_acrit, (A_Acrit, ga))
 
 def Ma_from_Mash(Mash, ga):
     r"""Mach number as function of post-shock Mach number.
@@ -423,7 +431,7 @@ def Ma_from_Mash(Mash, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.mash(Mash, ga)
+    return _restore_scalar(fort_to_Ma.mash, (Mash, ga))
 
 def Ma_from_Posh_Po(Posh_Po, ga):
     r"""Mach number as function of shock stagnation pressure ratio.
@@ -452,7 +460,7 @@ def Ma_from_Posh_Po(Posh_Po, ga):
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return fort_to_Ma.posh_po(Posh_Po, ga)
+    return _restore_scalar(fort_to_Ma.posh_po, (Posh_Po, ga))
 
 # Derivatives from Ma
 der_To_T_from_Ma = fort_der_from_Ma.to_t
