@@ -121,3 +121,28 @@ Inversion to Mach number
 .. autofunction:: compflow.Ma_from_Posh_Po
 
 
+Derivatives with respect to Mach number
+***************************************
+
+.. autosummary::
+
+   compflow.der_To_T_from_Ma
+   compflow.der_Po_P_from_Ma
+   compflow.der_rhoo_rho_from_Ma
+   compflow.der_V_cpTo_from_Ma
+   compflow.der_mcpTo_APo_from_Ma
+   compflow.der_mcpTo_AP_from_Ma
+   compflow.der_A_Acrit_from_Ma
+   compflow.der_Mash_from_Ma
+   compflow.der_Posh_Po_from_Ma
+
+.. autofunction:: compflow.der_To_T_from_Ma
+.. autofunction:: compflow.der_Po_P_from_Ma
+.. autofunction:: compflow.der_rhoo_rho_from_Ma
+.. autofunction:: compflow.der_V_cpTo_from_Ma
+.. autofunction:: compflow.der_mcpTo_APo_from_Ma
+.. autofunction:: compflow.der_mcpTo_AP_from_Ma
+.. autofunction:: compflow.der_A_Acrit_from_Ma
+.. autofunction:: compflow.der_Mash_from_Ma
+.. autofunction:: compflow.der_Posh_Po_from_Ma
+

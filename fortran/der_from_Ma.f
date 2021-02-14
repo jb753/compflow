@@ -94,9 +94,8 @@ C     INTERMEDIATE VARS
       SQRT_GM1 = SQRT(GM1)
 C     MAIN LOOP
       DO I=1,N
-            RECIP_SQRT_TO_T = 1.0D0/SQRT(1.0D0+GM1_2*M(I)*M(I))
-            Y(I)=SQRT_GM1*RECIP_SQRT_TO_T*(1.0D0-GM1_2*M(I)*M(I)
-     &           *RECIP_SQRT_TO_T*RECIP_SQRT_TO_T)
+          RECIP_SQRT_TO_T = 1.0D0/SQRT(1.0D0+GM1_2*M(I)*M(I))
+          Y(I)=SQRT_GM1*RECIP_SQRT_TO_T*RECIP_SQRT_TO_T*RECIP_SQRT_TO_T
       ENDDO
       END
 C
@@ -125,8 +124,8 @@ C     INTERMEDIATE VARS
 C     MAIN LOOP
       DO I=1,N
         TO_T = (1.0D0 + GM1_2 * M(I)*M(I))
-        F = G_SQ_GM1 * M(I) * TO_T**M_GP1_GM1_2
-        Y(I) = F *(1.0D0 - GP1_2*M(I)*M(I)/TO_T)/M(I) 
+        F = G_SQ_GM1 * TO_T**M_GP1_GM1_2
+        Y(I) = F *(1.0D0 - GP1_2*M(I)*M(I)/TO_T) 
       ENDDO
       END
 C

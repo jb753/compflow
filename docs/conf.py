@@ -59,6 +59,8 @@ mathjax_config = {
     'TeX': {
         'Macros': {
             "Ma": r"{M\kern-.1ema}",
+            "D": r"{\mathrm{d}}",
+            "DMa": r"\frac{\D}{\D\Ma}",
         }
    }
 }

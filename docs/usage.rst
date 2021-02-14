@@ -16,7 +16,7 @@ compflow is available on the Python Package Index, so installation is as simple 
 
    import compflow
 
-We can now start doing some calculations. First an explicit evaluation of
+We can now start doing some calculations. First, an explicit evaluation of
 stagnation pressure ratio :math:`p_0/p` given a Mach number :math:`\Ma`,
 
 .. doctest::
@@ -35,7 +35,8 @@ iterative solution for :math:`\Ma` is required,
    0.39659360325173604
 
 The names and symbols of non-dimensional quantities are fairly
-self-explanatory, but a full list is given in the :ref:`nomen`. All functions and the equations used for the calculations are documented in the :ref:`api`.
+self-explanatory, but a full list is given in the :ref:`nomen`. All functions
+and the equations used for the calculations are documented in the :ref:`api`.
 
 Numpy arrays are also accepted as inputs,
 
