@@ -43,13 +43,18 @@ Numpy arrays are also accepted as inputs,
 .. doctest::
 
    >>> import numpy
-   >>> Ma = numpy.array([0., 0.5, 1., 2.])
-   >>> compflow.To_T_from_Ma(Ma, ga)
+   >>> Ma1 = numpy.array([0., 0.5, 1., 2.])
+   >>> compflow.To_T_from_Ma(Ma1, ga)
    array([1.  , 1.05, 1.2 , 1.8 ])
+   >>> Ma2 = numpy.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]])
+   >>> compflow.To_T_from_Ma(Ma2, ga)
+   array([[1.002, 1.008],
+          [1.018, 1.032],
+          [1.05 , 1.072]])
 
 When solving for Mach number at a given normalised mass flow, it is assumed
 that we are on the subsonic branch of the curve unless a flag is specified.
-Where no solution is possible, for example if the flow would choke, `NaN` is
+Where no solution is possible, i.e. if the flow would choke, `NaN` is
 returned,
 
 .. doctest::

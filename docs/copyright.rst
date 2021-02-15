@@ -1,3 +1,6 @@
+License
+=======
+
 MIT License
 
 Copyright (c) 2021 James Brind <jb753@cam.ac.uk>

@@ -8,8 +8,11 @@ NumPy--Fortran interface, the code is vectorised and lightning-fast.
 .. toctree::
    :maxdepth: 1
 
+   motivation
    usage
+   benchmarks
    api
+   copyright
 
 .. image:: _static/sample.png
    :align: center
