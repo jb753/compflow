@@ -21,3 +21,13 @@ Other distinctive aspects of the design philosophy are that the library should:
 Benchmarks
 **********
 
+.. image:: _static/bench_forward.svg
+   :align: center
+   :width: 60%
+
+.. image:: _static/bench_inverse.svg
+   :align: center
+   :width: 60%
+
+
+

@@ -3,6 +3,14 @@
 API reference
 =============
 
+This page defines the application--program interface for the compflow module.
+The nomenclature section sets out the names and symbols for the quantites
+calculated by the code, then the functions are listed in three categories.
+First, evaluation of a non-dimensional group given Mach number; second, the
+reverse operation of finding the Mach number that corresponds to the value of
+another quantity; and third, evaluation of derivatives with respect to Mach
+number.
+
 .. _nomen:
 
 Nomenclature
