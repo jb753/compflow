@@ -13,15 +13,19 @@ if __name__ == '__main__':
     rcParams['font.serif'] = 'cm'
     rcParams['axes.titlesize'] = 'medium'
     rcParams['font.serif'] = 'cm'
-    xt = 10**np.array(np.arange(6))
+    tick_marks = 10**np.array(np.arange(6))
 
-    # Define parameters for benchmark 
+    # Define input data
     ga = 1.4
     N = np.logspace(0,5,14).astype(int)
     reps = 5
-
     Ma_max = 2.0
     Ma_min = 0.0
+    Xmax = 0.1
+    Xmin = 1.1
+
+    # FORWARD EVALUATION
+    print('Benchmarking forward evaluation...')
 
     # Loop over array sizes
     dt_native = []
@@ -53,6 +57,7 @@ if __name__ == '__main__':
         dt_fort.append(time_per_call[0,:].min())
         dt_native.append(time_per_call[1,:].min())
 
+    # Plot
     f,a  = plt.subplots()
     f.set_size_inches((4., 3.))
     a.loglog(N,dt_native,label='Native')
@@ -64,19 +69,20 @@ if __name__ == '__main__':
     a.legend()
     a.set_xlim((1,1e5))
     a.set_ylim((1e-7,1e-2))
-    a.set_xticks(xt)
+    a.set_xticks(tick_marks)
     f.tight_layout(pad=0.1)
     plt.savefig('bench_forward.svg')
 
     speedup = np.array(dt_fort)/np.array(dt_native)
     print('Fortran speedup: ', 1./speedup[(0,-1),])
 
+    # FORWARD EVALUATION
+    print('Benchmarking inversion...')
+
     # Initialise lookup table
     cf.to_Ma('mcpTo_APo',0.4,ga,use_lookup=True)
 
-    Xmax = 0.1
-    Xmin = 1.1
-
+    # Loop over array sizes
     dt_native = []
     dt_fort = []
     dt_lookup = []
@@ -84,6 +90,7 @@ if __name__ == '__main__':
 
         X = np.random.rand(Ni)*(Xmax-Xmin) + Xmin
 
+        # Set up timers
         T_fort = timeit.Timer(
             'cf.Ma_from_mcpTo_APo(X,ga)',
             'from __main__ import X,ga,cf'
@@ -111,6 +118,7 @@ if __name__ == '__main__':
         dt_native.append(time_per_call[1,:].min())
         dt_lookup.append(time_per_call[2,:].min())
 
+    # Make plot
     f,a  = plt.subplots()
     f.set_size_inches((4., 3.))
     a.loglog(N,dt_native,label='Native')
@@ -122,7 +130,7 @@ if __name__ == '__main__':
     a.grid(True)
     a.legend()
     a.set_xlim((1,1e5))
-    a.set_xticks(xt)
+    a.set_xticks(tick_marks)
     a.set_ylim((1e-7,1e-1))
     f.tight_layout(pad=0.1)
     plt.savefig('bench_inverse.svg')

@@ -113,54 +113,38 @@ def to_Ma(var, var_in, ga, supersonic=False, use_lookup=False):
         except ValueError:
             pass
 
-    # Coerce input to at least a 1D numpy array, so we can use logical indexing
-    # and maths operations on it without thinking
-    Y = np.atleast_1d(var_in)
+    # Check if an explicit inversion exists
+    if var == 'To_T':
+        Ma_out = Ma_from_To_T(var_in, ga)
 
+    elif var == 'Po_P':
+        Ma_out = Ma_from_Po_P(var_in, ga)
 
-    # nan indicates invalid or non-physical input
-    Ma_out = np.empty_like(Y) * np.nan
+    elif var == 'rhoo_rho':
+        Ma_out = Ma_from_rhoo_rho(var_in, ga)
 
-    # Don't try to solve if all are non-physical
-    iv = ~get_invalid(var, Y, ga)
-    if np.any(iv):
+    elif var == 'V_cpTo':
+        Ma_out = Ma_from_V_cpTo(var_in, ga)
 
-        # Check if an explicit inversion exists
-        if var == 'To_T':
-            Ma_out[iv] = Ma_from_To_T(Y[iv], ga)
+    elif var == 'mcpTo_APo':
+        Ma_out = Ma_from_mcpTo_APo(var_in, ga, supersonic)
 
-        elif var == 'Po_P':
-            Ma_out[iv] = Ma_from_Po_P(Y[iv], ga)
+    elif var == 'mcpTo_AP':
+        Ma_out = Ma_from_mcpTo_AP(var_in, ga)
 
-        elif var == 'rhoo_rho':
-            Ma_out[iv] = Ma_from_rhoo_rho(Y[iv], ga)
+    elif var == 'A_Acrit':
+        Ma_out = Ma_from_A_Acrit(var_in, ga, supersonic)
 
-        elif var == 'V_cpTo':
-            Ma_out[iv] = Ma_from_V_cpTo(Y[iv], ga)
+    elif var == 'Mash':
+        Ma_out = Ma_from_Mash(var_in, ga)
 
-        elif var == 'mcpTo_APo':
-            Ma_out[iv] = Ma_from_mcpTo_APo(Y[iv], ga, supersonic)
+    # Shock pressure ratio
+    elif var == 'Posh_Po':
+        Ma_out = Ma_from_Posh_Po(var_in, ga)
 
-        elif var == 'mcpTo_AP':
-            Ma_out[iv] = Ma_from_mcpTo_AP(Y[iv], ga)
+    else:
+        raise ValueError('Bad flow quantity requested.')
 
-        elif var == 'A_Acrit':
-            Ma_out[iv] = Ma_from_A_Acrit(Y[iv], ga, supersonic)
-
-        elif var == 'Mash':
-            Ma_out[iv] = Ma_from_Mash(Y[iv], ga)
-
-        # Shock pressure ratio
-        elif var == 'Posh_Po':
-            Ma_out[iv] = Ma_from_Posh_Po(Y[iv], ga)
-
-        else:
-            raise ValueError('Bad flow quantity requested.')
-
-
-    # Return to a scalar if required
-    if np.size(Ma_out)==1:
-        Ma_out = float(Ma_out)
 
     return Ma_out
 
