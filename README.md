@@ -7,7 +7,7 @@ speed-up of up to two orders of magnitude.
 
 [Full documentation](https://jb753.user.srcf.net/compflow-docs/index.html) is available online. 
 
-![Compressible flow quantities](sample/sample.svg)
+![Compressible flow quantities](sample/sample.png)
 
 ## Features
 
