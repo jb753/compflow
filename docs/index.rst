@@ -16,5 +16,3 @@ speed-up of up to :ref:`two orders of magnitude <bench>`.
 .. image:: _static/sample.png
    :align: center
    :width: 80%
-
-

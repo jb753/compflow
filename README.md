@@ -1,7 +1,9 @@
 # compflow
 
-This library contains functions to convert back and forth between Mach number
-and other non-dimensional compressible flow quantities.
+The compflow library contains functions to convert back and forth between Mach
+number and other non-dimensional groups in compressible flows. By using a
+NumPy--Fortran interface, the code is vectorised and lightning-fast, yielding a
+speed-up of up to two orders of magnitude.
 
 ![Compressible flow quantities](sample/sample.svg)
 
@@ -9,73 +11,89 @@ and other non-dimensional compressible flow quantities.
 
 * Evaluation of ten non-dimensional flow quantities as explicit functions of
   Mach number;
-* Iteration with Newton's method to invert the explicit relations and solve for
+* Iteration with Newton's method to invert explicit relations and solve for
   Mach number;
 * Creation and caching of lookup tables to speed up inversions;
 * Fortran-accelerated, fully-vectorised in both directions.
 
-## Usage
-
+## Basic usage
+ 
 compflow is available on the Python Package Index, so installation is as simple as,
-```
-$ python3 -m pip install compflow
+
+```python
+
+   python3 -m pip install compflow
+
+   ```
+**Note:** as the library uses Fortran subroutines behind the scenes, you will
+need a working Fortran compiler for the installation to complete successfully. 
+
+We can now start doing some calculations. First, an explicit evaluation of
+stagnation pressure ratio given a Mach number,
+
+```python
+
+   >>> import compflow
+   >>> ga = 1.4
+   >>> compflow.Po_P_from_Ma(0.3, ga)
+   1.0644302861529382
+
 ```
 
-We can then start doing some calculations,
+Second, an inversion of flow function where
+iterative solution for Mach number is required,
+
 ```python
->>> import compflow
->>> compflow.from_Ma(var='Po_P', Ma_in=0.3, ga=1.4)  # Explicit evaluation
-1.0644302861529382
->>> compflow.to_Ma(var='Po_P', var_in=1.064, ga=1.4)  # Iterative solve
-0.2990184500710573
+
+   >>> compflow.Ma_from_mcpTo_APo(0.8, ga)
+   0.39659360325173604
+
 ```
-The functions `from_Ma` and `to_Ma` are the primary interface to the library.
-They take a string argument indicating which quantity should be found from or
-converted to Mach number; see the docs for valid choices.
+
+The names and symbols of non-dimensional quantities are fairly
+self-explanatory, but a full list is given in the :ref:`nomen`. All functions
+and the equations used for the calculations are documented in the :ref:`api`.
 
 Numpy arrays are also accepted as inputs,
+
 ```python
->>> import numpy
->>> Ma = numpy.array([0., 0.5, 1., 2.])
->>> compflow.from_Ma('Po_P', Ma, 1.4)
-array([1.        , 1.18621264, 1.89292916, 7.82444907])
+
+   >>> import numpy
+   >>> Ma1 = numpy.array([0., 0.5, 1., 2.])
+   >>> compflow.To_T_from_Ma(Ma1, ga)
+   array([1.  , 1.05, 1.2 , 1.8 ])
+   >>> Ma2 = numpy.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]])
+   >>> compflow.To_T_from_Ma(Ma2, ga)
+   array([[1.002, 1.008],
+          [1.018, 1.032],
+          [1.05 , 1.072]])
 ```
 
-When solving for Mach number, it is assumed that we are on the subsonic branch
-of the curve unless a flag is specified. Where no solution is possible, for
-example if the flow would choke, `nan` is returned,
-```python 
->>> capacity = [0.6, 2.]
->>> compflow.to_Ma('mcpTo_APo', capacity, 1.4)
-array([0.28442265,        nan])
->>> compflow.to_Ma('mcpTo_APo', capacity, 1.4, supersonic=True)
-array([2.27028708,        nan])
-```
+When solving for Mach number at a given normalised mass flow, it is assumed
+that we are on the subsonic branch of the curve unless a flag is specified.
+Where no solution is possible, i.e. if the flow would choke, `NaN` is
+returned,
 
-Lower level functions for each quantity are also available, but these are fussy
-about their inputs: some accept only Numpy arrays.
 ```python
->>> compflow.Ma_from_Po_P(1.2,1.4)
-0.5170711949922853
->>> compflow.A_Acrit_from_Ma(numpy.atleast_1d(0.3),1.4)
-array([2.03506526])
+
+   >>> capacity = [0.6, 2.]
+   >>> compflow.Ma_from_mcpTo_APo(capacity, ga)
+   array([0.28442265,        nan])
+   >>> compflow.Ma_from_mcpTo_APo(capacity, ga, sup=True)
+   array([2.27028708,        nan])
+
 ```
-
-## Why compflow?
-
-Like many libraries, compflow was written because the existing options did not
-meet the authors' needs.
-
-* Super-fast because calculations are done in Fortran behind the scenes;
-* Implements non-dimensional mass flow or capacity, which is commonly used for
-  internal flow calculations;
-* Simple, function-oriented interface;
-* Supports inversions to solve for Mach number;
-* Fully non-dimensional, no units-related nonsense.
 
 ## TODO
 
-* Comprehensive documentation.
+* Make tolerance on Mach number for iterative inversions modifiable via a
+  module-level attribute. 
+* Refactor and properly document the lookup table functionality.
+* Add flag to solve for supersonic branch of A/A_crit.
+* Add test for invalid values of Mach number.
+* Add test for invalid values of inversion quantities.
+* Add test for compatibility of output shape.
 
 James Brind
-December 2020
+Feb 2021
+

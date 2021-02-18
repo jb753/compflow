@@ -15,6 +15,7 @@ Other distinctive aspects of the design philosophy are that the library should:
 
 * Be as fast as possible, because iterative solutions of these equations are
   often a bottleneck;
+* Operate on vectors of input data, for scalability;
 * Have a function-oriented interface, with no "ideal gas objects" just to
   evaluate a formula;
 * Operate on non-dimensional quantities only, the one true vocabulary of fluid
@@ -64,12 +65,3 @@ code --- the SciPy spline and Newton solver are complex, general tools with
 quite a bit of extra logic that is not used here. However, for large arrays of
 input data, the lookup table scales better, with a speed-up of 11 compared to
 3.2 for the Fortran implementation.
-
-TODO
-****
-
-* Currently the tolerance on Mach number for iterative inversions is hard-coded
-  to :math:`\delta\Ma = 1 \times 10^{-6}`. This should be modifiable via a
-  module-level attribute. 
-* Refactor and properly document the lookup table functionality.
-* Add flag to solve for supersonic branch of :math:`A/A*`.
