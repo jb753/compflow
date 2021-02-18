@@ -71,7 +71,7 @@ if __name__ == '__main__':
     a.set_ylim((1e-7,1e-2))
     a.set_xticks(tick_marks)
     f.tight_layout(pad=0.1)
-    plt.savefig('bench_forward.svg')
+    plt.savefig('bench_forward.png',dpi=250)
 
     speedup = np.array(dt_fort)/np.array(dt_native)
     print('Fortran speedup: ', 1./speedup[(0,-1),])
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     a.set_xticks(tick_marks)
     a.set_ylim((1e-7,1e-1))
     f.tight_layout(pad=0.1)
-    plt.savefig('bench_inverse.svg')
+    plt.savefig('bench_inverse.png',dpi=250)
 
     speedup = np.array(dt_fort)/np.array(dt_native)
     print('Fortran speedup: ', 1./speedup[(0,-1),])

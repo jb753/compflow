@@ -32,7 +32,7 @@ input data can be vectorised, so the benchmarks is repeated for different sized
 arrays. The script which generates these benchmarks is `available on the GitHub
 <https://github.com/jb753/compflow/blob/master/test/run_bench.py>`_.
 
-.. image:: _static/bench_forward.svg
+.. image:: _static/bench_forward.png
    :align: center
    :width: 60%
 
@@ -52,7 +52,7 @@ for many values of :math:`\dot{m}\sqrt{c_pT_0}/Ap_0`. The library function
 lookup tables using SciPy splines. The native implementation uses the SciPy
 Newton solver.
 
-.. image:: _static/bench_inverse.svg
+.. image:: _static/bench_inverse.png
    :align: center
    :width: 60%
 
