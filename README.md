@@ -5,7 +5,7 @@ number and other non-dimensional groups in compressible flows. By using a
 NumPy--Fortran interface, the code is vectorised and lightning-fast, yielding a
 speed-up of up to two orders of magnitude.
 
-Full documentation is available online at [Read the Docs.](https://compflow.readthedocs.io/)
+[Full documentation](https://jb753.user.srcf.net/compflow-docs/index.html) is available online. 
 
 ![Compressible flow quantities](sample/sample.svg)
 
@@ -54,9 +54,9 @@ iterative solution for Mach number is required,
 
 The names and symbols of non-dimensional quantities are fairly
 self-explanatory, but a full list is given in the
-[Nomenclature](https://compflow.readthedocs.io/en/latest/api.html#nomenclature).
+[Nomenclature](https://jb753.user.srcf.net/compflow-docs/api.html#nomenclature).
 All functions and the equations used for the calculations are documented in the
-[API](https://compflow.readthedocs.io/en/latest/api.html).
+[API](https://jb753.user.srcf.net/compflow-docs/api.html).
 
 Numpy arrays are also accepted as inputs,
 
