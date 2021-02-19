@@ -9,8 +9,8 @@ compflow is available on the Python Package Index, so installation is as simple 
 
 .. note::
 
-   As the library uses Fortran subroutines behind the scenes, you will need a
-   working Fortran compiler for the installation to complete successfully. 
+   * The setup script uses NumPy distutils, so if you do not already have NumPy installed, you should first run ``python3 -m pip install numpy``;
+   * As the library is based on Fortran subroutines, you will need a working Fortran compiler for the installation to complete successfully. 
 
 .. testsetup:: *
 
