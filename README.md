@@ -98,6 +98,7 @@ returned,
 * Add test for invalid values of inversion quantities.
 * Add test for compatibility of output shape.
 * Sort out packaging so that NumPy gets installed automatically.
+* Consider un-vectorising the newton solver in native implementation.
 
 James Brind
 Feb 2021
