@@ -273,7 +273,7 @@ def blade_section(chi):
 
     return xy
 
-def pitch(Z, Al, Ma, Dr, ga, Yp):
+def pitch_Zweifel(Z, Al, Ma, Dr, ga, Yp):
     """Calculate pitch-to-chord from Zweifel coefficient."""
     Alr = np.radians(Al)
     Po2_P2 = compflow.Po_P_from_Ma(Ma[1], ga)
@@ -307,7 +307,6 @@ def chord_Re(Re, To1, Po1, Ma, ga, rgas, Yp):
     # Use reynolds number to set chord
     cx = Re * mu / ro2 / V2
     return cx
-
 
 def meridional_mesh(xc, rm, Dr, c, nr):
     """Generate meridional mesh for a blade row."""
@@ -377,7 +376,6 @@ def blade_to_blade_mesh(x, r, ii, chi, nrt, s_c):
     # Chord
     xpass = x[ii[0]:ii[1]] - x[ii[0]]
     c = xpass.ptp()
-    print(c)
 
     nj = np.shape(chi)[1]
     rt = np.empty(np.shape(r) + (nrt,))
@@ -390,7 +388,7 @@ def blade_to_blade_mesh(x, r, ii, chi, nrt, s_c):
         rt[ii[0]:ii[1],j,:] = (rt0 + (rt1-rt0)*clust3).squeeze()
 
     # Now deal with inlet and exit ducts
-    # Keep clustering
+    # First just extend clustering
     rt[:ii[0],:,:] = rt[ii[0],:,:]
     rt[ii[1]:,:,:] = rt[ii[1]-1,:,:]
 
@@ -411,118 +409,6 @@ def blade_to_blade_mesh(x, r, ii, chi, nrt, s_c):
             rt[ii[1],:,:]-rt[-1,:,:])[None,...]*lin_x_dn3
 
     return rt
-
-def row_mesh(xy, rm, Dr, dx, s):
-    """Generate H-mesh for a blade row from surface coords, radii."""
-
-    nj = 5
-    nk = 65
-
-    # Lay out the 
-
-    # get LE and TE posns for later
-    xLE = xy[0,0]
-    xTE = xy[0,-1]
-
-    # Add Cosine clustering away from LE/TE
-    cx = np.ptp(xy[0,:])
-    x_up = -0.5 * (1. - np.cos(np.pi * np.linspace(-0.5,0.,50))) * cx + xy[0,0]
-    x_dwn = 0.5 * (1. - np.cos(np.pi * np.linspace(0.,0.5,50))) * cx + xy[0,-1]
-
-    # Trim if needed
-    x_up = x_up[x_up > (xLE-dx[0])]
-    x_dwn = x_dwn[x_dwn < (xTE+dx[1])]
-
-    # Extend if needed
-    if x_up[0] > (xLE - dx[0]):
-        nxu = int((x_up[0] - (xLE-dx[0]))/(x_up[1]-x_up[0]))
-        x_up = np.insert(x_up, 0, np.linspace(xLE-dx[0],x_up[0],nxu)[:-1])
-    else:
-        x_up[0] = xLE-dx[0]
-
-    if x_dwn[-1] < (xTE + dx[1]):
-        nxd = int(-(x_dwn[-1] - (xTE+dx[1]))/(x_dwn[-1]-x_dwn[-2]))
-        x_dwn = np.append(x_dwn, np.linspace(x_dwn[-1],xTE+dx[1],nxd)[1:])
-    else:
-        x_dwn[-1] = xTE+dx[1]
-
-    rt_up = np.ones_like(x_up) * xy[1,0]
-    rt_dwn = np.ones_like(x_dwn) * xy[1,-1]
-
-    xy_up = np.vstack((x_up,rt_up,rt_up))
-    xy_dwn = np.vstack((x_dwn,rt_dwn,rt_dwn))
-
-    xy = np.hstack((xy_up,xy[:,1:-1],xy_dwn))
-
-
-    xv = np.concatenate((
-        # np.linspace(-dx[0],0.0,nxu)[:-1]-0.5*cx+xy[0,0],
-        # dx_up[:-1] + xy[0,0],
-        xy[0,:],
-        # dx_dwn[1:] + xy[0,-1],
-        # np.linspace(0.,dx[1],nxd)[1:]+0.5*cx+xy[0,-1]))
-        ))
-    ni = len(xv)
-    # xi = np.array([xy[0,0]-dx[0],xy[0,0],xy[0,-1],xy[0,-1]+dx[1]])
-    xi = np.array([xy[0,0],xLE,xTE,xy[0,-1]])
-    ri = np.array([rm[0], rm[0], rm[1], rm[1]])
-    Dri = np.array([Dr[0], Dr[0], Dr[1], Dr[1]])
-    rmv = np.interp(xv, xi, ri)
-    r1v = rmv - np.interp(xv, xi, Dri)*0.5
-    r2v = rmv + np.interp(xv, xi, Dri)*0.5
-
-    facrel = np.array([1.,0.,0.,1.])
-    relv = np.interp(xv,xi,facrel)
-
-    # f,a = plt.subplots()
-    # a.plot(xi,facrel,'k-x')
-    # a.plot(xv, relv,'b-x')
-    # plt.show()
-
-
-    rt1v = xy[1,:]
-    rt2v = xy[2,:] + s
-
-    f,a = plt.subplots()
-    a.plot(xv, rt1v, '-x')
-    a.plot(xv, rt2v, '-x')
-
-    f,a = plt.subplots()
-    a.plot(xv, rmv, '-x')
-    a.plot(xv, r1v, '-x')
-    a.plot(xv, r2v, '-x')
-    plt.show()
-
-
-    # Cosine pitch distribution
-    xclu = 0.5*(1.-np.cos(np.pi * np.linspace(1.,0.,nk)))
-
-    # Uniform pitch distribution
-    xunif = np.linspace(1.,0.,nk)
-
-    # Preallocate and loop over i-lines
-    sz = (ni, nj, nk)
-    x = np.empty(sz)
-    r = np.empty(sz)
-    rt = np.empty(sz)
-    for i in range(ni):
-        x[i,...] = xv[i]
-        rnow = np.tile(np.linspace(r1v[i],r2v[i],nj),(nk,1)).T
-        xhat = relv[i] * xunif + (1. - relv[i])*xclu
-        rtmnow = np.atleast_2d(xhat * rt1v[i] + (1.-xhat)*rt2v[i])
-        rtnow = rtmnow / rmv[i] * rnow
-        r[i,...] = rnow
-        rt[i,...] = rtnow
-
-    # f,a = plt.subplots()
-    # a.plot(x[:,0,:],rt[:,0,:],'k-')
-    # a.plot(x[:,0,:].T,rt[:,0,:].T,'k-')
-
-    # f,a = plt.subplots()
-    # a.plot(rt[5,:,:],r[5,:,:],'k-')
-    # a.plot(rt[5,:,:].T,r[5,:,:].T,'k-')
-
-    return x, r, rt
 
 
 def add_to_grid(g, x, r, rt, bid, slip_wall=False):
@@ -1109,8 +995,8 @@ if __name__ == "__main__":
 
     # Calculate pitch-to-chord ratio (const Zweifel)
     s_c = (
-        pitch(Z, stage.Al[:2], stage.Ma[:2], Dr[:2], ga, stage.Yp[0]),
-        pitch(Z, stage.Al_rel[1:], stage.Ma_rel[1:], Dr[1:], ga, stage.Yp[1])
+        pitch_Zweifel(Z, stage.Al[:2], stage.Ma[:2], Dr[:2], ga, stage.Yp[0]),
+        pitch_Zweifel(Z, stage.Al_rel[1:], stage.Ma_rel[1:], Dr[1:], ga, stage.Yp[1])
         )
 
     # Set chord based on Reynolds number
