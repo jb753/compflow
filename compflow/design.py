@@ -290,6 +290,28 @@ def chord_Re(Re, To1, Po1, Ma, ga, rgas, Yp):
     cx = Re * mu / ro2 / V2
     return cx
 
+def fillet(x,r,dx):
+
+    # Get indices for the points at boundary of fillet
+    ind = np.array(np.where(np.abs(x)<=dx)[0])
+
+    dr = np.diff(r)/np.diff(x)
+
+    # Assemble matrix problem
+    rpts = r[ind[(0,-1),]]
+    xpts = x[ind[(0,-1),]]
+    drpts = dr[ind[(0,-1),]]
+    b = np.atleast_2d(np.concatenate((rpts,drpts))).T
+    A = np.array([
+        [xpts[0]**3.,xpts[0]**2.,xpts[0],1.],
+        [xpts[1]**3.,xpts[1]**2.,xpts[1],1.],
+        [3.*xpts[0]**2.,2.*xpts[0],1.,0.],
+        [3.*xpts[1]**2.,2.*xpts[1],1.,0.],
+        ])
+    poly = np.matmul(np.linalg.inv(A),b).squeeze()
+
+    r[ind] = np.polyval(poly,x[ind])
+
 def meridional_mesh(xc, rm, Dr, c, nr):
     """Generate meridional mesh for a blade row."""
 
@@ -322,6 +344,10 @@ def meridional_mesh(xc, rm, Dr, c, nr):
     x = np.insert(x, 0, xc[0])
     x = np.append(x, xc[-1])
 
+    # Get indices of edges
+    i_edge = [np.where(x==xc[i])[0][0] for i in [1,2]]
+    i_edge[1] = i_edge[1]+1
+
     # Number of radial points
     spf = np.linspace(0.,1.,nr)
     spf2 = np.atleast_2d(spf).T
@@ -329,21 +355,26 @@ def meridional_mesh(xc, rm, Dr, c, nr):
     # Now annulus lines
     rh = np.interp(x, xc[1:3], rm - Dr/2.)
     rc = np.interp(x, xc[1:3], rm + Dr/2.)
+
+    # smooth the edges
+    dxsmth_c = 0.2
+    for i in [1,2]:
+        fillet(x-xc[i],rh,dxsmth_c)
+        fillet(x-xc[i],rc,dxsmth_c)
+
+
     rh2 = np.atleast_2d(rh)
     rc2 = np.atleast_2d(rc)
     r = spf2*(rc2-rh2) + rh2
     r = r.T
 
-    # Get indices of edges
-    i_edge = [np.where(x==xc[i])[0][0] for i in [1,2]]
-    i_edge[1] = i_edge[1]+1
-
     # # Scale by chord
     x = x*c
 
-    # f,a = plt.subplots()
-    # a.plot(x,r,'k-')
-    # a.axis('equal')
+    f,a = plt.subplots()
+    a.plot(x,r,'k-')
+    a.axis('equal')
+    plt.show()
 
     return x, r, i_edge
 
