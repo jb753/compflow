@@ -382,7 +382,7 @@ def blade_to_blade_mesh(x, r, ii, chi, nrt, s_c):
 
     return rt
 
-def make_patch(kind, i, j, k, nxbid=0, nxpid=0, dirs=None)
+def make_patch(kind, i, j, k, nxbid=0, nxpid=0, dirs=None):
     # Periodic patches
     p = ts_tstream_type.TstreamPatch()
 
