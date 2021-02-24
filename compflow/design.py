@@ -4,10 +4,16 @@ design parameters. It should not need to be changed and it is not neccesary to
 understand what goes on below.
 """
 import scipy.optimize, scipy.integrate
-from . import compflow
+import compflow
+# from . import compflow
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
+from ts import ts_tstream_grid, ts_tstream_type, ts_tstream_default
+from ts import ts_tstream_patch_kind
+
+muref = 1.8e-5
+Tref = 288.0
 
 # Define a namedtuple to store all information about a stage design
 # Note that the reference blade speed is taken at rotor inlet
@@ -20,6 +26,9 @@ stage_params = [
     'Lam',  # Reaction
     'Ax_Axin',  # Normalised areas
     'U_sqrt_cpToin',  # Non-dimensional blade speed
+    'Pout_Poin',
+    'Po_Poin',
+    'To_Toin',
 ]
 NonDimStage = namedtuple('NonDimStage', stage_params)
 
@@ -119,6 +128,9 @@ def nondim_stage_from_Al(
         Ax_Axin=tuple(Dr_Drin),
         Lam=Lam,
         U_sqrt_cpToin=U_cpToin,
+        Pout_Poin = P_Poin[-1],
+        Po_Poin=Po_Poin,
+        To_Toin=To_Toin,
     )
 
     return dat
@@ -272,8 +284,6 @@ def chord_Re(Re, To1, Po1, Ma, ga, rgas, Yp):
     V2 = compflow.V_cpTo_from_Ma(Ma,ga) * np.sqrt(cp*To1)
 
     # Get viscosity using 0.62 power approximation
-    muref = 1.8e-5
-    Tref = 288.0
     mu = muref * (T2/Tref)**0.62
 
     # Use reynolds number to set chord
@@ -289,7 +299,7 @@ def meridional_mesh(xc, rm, Dr, c, nr):
     # Define a cosinusiodal clustering function
     clust = 0.5*(1. - np.cos(np.pi * np.linspace(0.,1.0,nxb)))
     dclust = np.diff(clust)
-    dmin, dmax = dclust.min(), dclust.max()
+    _, dmax = dclust.min(), dclust.max()
 
     # Numbers of points in inlet/outlet
     nxu = int((xc[1]-xc[0]-0.5)/dmax)
@@ -382,11 +392,13 @@ def blade_to_blade_mesh(x, r, ii, chi, nrt, s_c):
 
     return rt
 
-def make_patch(kind, i, j, k, nxbid=0, nxpid=0, dirs=None):
+def make_patch(kind, bid, i, j, k, nxbid=0, nxpid=0, dirs=None):
     # Periodic patches
     p = ts_tstream_type.TstreamPatch()
 
     p.kind = getattr(ts_tstream_patch_kind, kind)
+
+    p.bid = bid
 
     p.ist, p.ien = i
     p.jst, p.jen = j
@@ -395,15 +407,32 @@ def make_patch(kind, i, j, k, nxbid=0, nxpid=0, dirs=None):
     p.nxbid = nxbid
     p.nxpid = nxpid
 
+    
     if dirs is not None:
         p.idir, p.jdir, p.kdir = dirs
     else:
         p.idir, p.jdir, p.kdir = (0,1,2)
 
-    p.nface = 0
-    p.nt = 0
-
     return p
+
+def apply_inlet(g, bid, pid, Poin, Toin, nk, nj):
+
+    yaw   = np.zeros(( nk,  nj), np.float32)
+    pitch = np.zeros(( nk,  nj), np.float32)
+    pstag = np.zeros(( nk,  nj), np.float32)
+    tstag = np.zeros(( nk,  nj), np.float32)
+
+    pstag += Poin
+    tstag += Toin
+    yaw += 0.0
+    pitch += 0.0
+
+    g.set_pp("yaw", ts_tstream_type.float, bid, pid, yaw)
+    g.set_pp("pitch", ts_tstream_type.float, bid, pid, pitch)
+    g.set_pp("pstag", ts_tstream_type.float, bid, pid, pstag)
+    g.set_pp("tstag", ts_tstream_type.float, bid, pid, tstag)
+    g.set_pv("rfin", ts_tstream_type.float, bid, pid, 0.5)
+    g.set_pv("sfinlet", ts_tstream_type.float, bid, pid, 1.0)
 
 def add_to_grid(g, xin, rin, rtin, ind, bid):
     """From mesh coordinates, add a block with patches to TS grid object"""
@@ -411,9 +440,6 @@ def add_to_grid(g, xin, rin, rtin, ind, bid):
     rt = rtin+0.
     r = np.repeat(rin[:,:,None],nk,axis=2)
     x = np.tile(xin[:,None,None],(1,nj,nk))
-    print(np.shape(x))
-    print(np.shape(r))
-    print(np.shape(rt))
 
     # Permute the coordinates into C-style ordering
     # Turbostream is very fussy about this
@@ -441,39 +467,41 @@ def add_to_grid(g, xin, rin, rtin, ind, bid):
         g.set_bp(vname, ts_tstream_type.float, bid, vval)
 
     # Leading and trailing edges
-    ile, ite = ii
+    ile, ite = ind
 
     # Add periodic patches first
 
     # Upstream of LE
     periodic_up_1 = make_patch(
-        kind='periodic', i=(0,ile+1), j=(0,nj), k=(0,1), dirs=(0,1,6),
-        nxbid=bid, nxpid=1,
+        kind='periodic', bid=bid, i=(0,ile+1), j=(0,nj), k=(0,1),
+        dirs=(0,1,6), nxbid=bid, nxpid=1,
         )
     periodic_up_2 = make_patch(
-        kind='periodic', i=(0,ile+1), j=(0,nj), k=(nk-1,nk), dirs=(0,1,6),
-        nxbid=bid, nxpid=0,
+        kind='periodic', bid=bid, i=(0,ile+1), j=(0,nj), k=(nk-1,nk),
+        dirs=(0,1,6), nxbid=bid, nxpid=0,
         )
-    g.add_patch(bid, periodic_up_1)
-    g.add_patch(bid, periodic_up_2)
+    periodic_up_1.pid = g.add_patch(bid, periodic_up_1)
+    periodic_up_2.pid = g.add_patch(bid, periodic_up_2)
 
     # Downstream of TE
     periodic_dn_1 = make_patch(
-        kind='periodic', i=(ite,ni), j=(0,nj), k=(0,1), dirs=(0,1,6),
-        nxbid=bid, nxpid=3,
+        kind='periodic', bid=bid, i=(ite,ni), j=(0,nj), k=(0,1),
+        dirs=(0,1,6), nxbid=bid, nxpid=3,
         )
     periodic_dn_2 = make_patch(
-        kind='periodic', i=(ite,ni), j=(0,nj), k=(nk-1,nk), dirs=(0,1,6),
-        nxbid=bid, nxpid=2,
+        kind='periodic', bid=bid, i=(ite,ni), j=(0,nj), k=(nk-1,nk),
+        dirs=(0,1,6), nxbid=bid, nxpid=2,
         )
-    g.add_patch(bid, periodic_dn_1)
-    g.add_patch(bid, periodic_dn_2)
+    periodic_dn_1.pid = g.add_patch(bid, periodic_dn_1)
+    periodic_dn_2.pid = g.add_patch(bid, periodic_dn_2)
 
     # Slip wall
-    slip_j0 = make_patch( kind='slipwall', i=(0,ni), j=(0,1), k=(0,nk) )
-    slip_nj = make_patch( kind='slipwall', i=(0,ni), j=(nj-1,nj), k=(0,nk) )
-    g.add_patch(bid, slip_j0)
-    g.add_patch(bid, slip_nj)
+    slip_j0 = make_patch( kind='slipwall', bid=bid,
+            i=(0,ni), j=(0,1), k=(0,nk) )
+    slip_nj = make_patch( kind='slipwall', bid=bid,
+            i=(0,ni), j=(nj-1,nj), k=(0,nk) )
+    slip_j0.pid = g.add_patch(bid, slip_j0)
+    slip_nj.pid = g.add_patch(bid, slip_nj)
 
     # Default avs
     for name in ts_tstream_default.av:
@@ -492,11 +520,13 @@ def add_to_grid(g, xin, rin, rtin, ind, bid):
             else:
                 g.set_bv(name, ts_tstream_type.float, bid, val)
 
-def guess_block(g, bid, x, Po, To, Ma, Al, ga, cp, cv, rgas):
+def guess_block(g, bid, x, Po, To, Ma, Al, ga, rgas):
     b = g.get_block(bid)
     ni, nj, nk = (b.ni, b.nj, b.nk)
     xb = g.get_bp('x', bid)
     rb = g.get_bp('r', bid)
+    cp = rgas / (ga-1.)*ga
+    cv = cp/ga
 
     # Interpolate guess to block coords
     Pob = np.interp(xb, x, Po)
@@ -505,14 +535,14 @@ def guess_block(g, bid, x, Po, To, Ma, Al, ga, cp, cv, rgas):
     Alb = np.interp(xb, x, Al)
 
     # Get velocities
-    Vb = cf.from_Ma('V_cpTo', Mab, ga) * np.sqrt(cp * Tob)
+    Vb = compflow.V_cpTo_from_Ma(Mab, ga) * np.sqrt(cp * Tob)
     Vxb = Vb * np.cos(np.radians(Alb))
     Vtb = Vb * np.sin(np.radians(Alb))
     Vrb = np.zeros_like(Vb)
 
     # Static pressure and temperature
-    Pb = Pob / cf.from_Ma('Po_P', Mab, ga)
-    Tb = Tob / cf.from_Ma('To_T', Mab, ga)
+    Pb = Pob / compflow.Po_P_from_Ma(Mab, ga)
+    Tb = Tob / compflow.To_T_from_Ma(Mab, ga)
 
     # Density
     rob = Pb / rgas / Tb
@@ -548,250 +578,20 @@ def guess_block(g, bid, x, Po, To, Ma, Al, ga, cp, cv, rgas):
     g.set_bp("rorvt", ts_tstream_type.float, bid, rorvtbp)
     g.set_bp("roe", ts_tstream_type.float, bid, roebp)
 
-
-def generate(fname, phi, psi, Lam, Ma, eta, gap_chord, slip_vane, guess_file=None ):
-    gamma = 1.4
-    rgas = 287.14
-    cp = gamma / (gamma - 1.0) * rgas
-    cv = cp/gamma
-
-    # Generate a stage in non-dimensional form
-    nd_stage = nondim_stage_from_Lam(
-            phi=phi,
-            psi=psi,
-            Lam=Lam,
-            Alin=0.0,
-            Ma=Ma,
-            ga=gamma,
-            eta=eta
-            )
-
-    # Choose dimensional conditions
-    Omega = 50.0 * 2. * np.pi
-    htr = 0.99
-    Poin = 16e5
-    Toin = 1.6e3
-    Alin = 0.0
-    inlet = State(gamma, rgas, Poin, Toin, Alin)
-
-    Pout = Poin * nd_stage.PR
-    # Get radii
-    rm, Dr, _, _ = scale_stage(nd_stage, inlet, Omega, htr)
-
-    # Blade sections
-    xy_stator = blade_section(nd_stage.chi[:2])
-    xy_rotor = blade_section(nd_stage.chi[2:])
-
-    # Get viscosity at the inlet condition using 0.62 power approximation
-    muref = 1.8e-5
-    Tref = 288.0
-    mu = muref * (Toin/Tref)**0.62
-
-    # Use mach to get velocity and density at vane exit
-    V_cpTo = cf.from_Ma('V_cpTo',nd_stage.Ma_out[0],gamma)
-    Vref = V_cpTo * np.sqrt(cp * Toin)
-    rhoo_rho = cf.from_Ma('rhoo_rho',nd_stage.Ma_out[0],gamma)
-    roref = Poin / rgas / Toin / rhoo_rho
-
-    # Use reynolds number to set chords
-    Re = 3e6
-    cx_vane = Re * mu / roref / Vref
-    cx_rotor = cx_vane
-    cx = np.array((cx_vane, cx_rotor))
-
-    # Put the blades on a common coordinate system
-    gap = gap_chord * cx_vane
-    xy_stator = xy_stator * cx_vane
-    xy_rotor = xy_rotor * cx_rotor
-    xy_rotor[0,:] = xy_rotor[0,:] + cx_vane + gap
-
-    # Pitch to chord using Zweifel
-    Z = 0.85
-    Alr_sta = np.radians(nd_stage.chi[:2])
-    Alr_rot = np.radians(nd_stage.chi[2:])
-    denom_sta = (np.cos(Alr_sta[1])**2.)*(
-            np.tan(Alr_sta[1]) - np.tan(Alr_sta[0]))
-    denom_rot = (np.cos(Alr_rot[1])**2.)*(
-            np.tan(Alr_rot[1]) - np.tan(Alr_rot[0]))
-    s_c = Z / 2. /np.array([denom_sta,-denom_rot])
-
-    # Round to nearest whole number of blades
-    nb = np.round(2. * np.pi * rm[0] / (s_c * cx))
-    print('nb = ',nb)
-    s_c =  2. * np.pi * rm[0] /nb / cx
-
-    xs, rs, rts = row_mesh(xy_stator, rm[:2], Dr[:2], [cx_vane * 3., gap/2.], s_c[0] * cx_vane)
-
-    xr, rr, rtr = row_mesh(xy_rotor, rm[2:], Dr[2:], [gap/2., cx_rotor * 3.], s_c[1] * cx_rotor)
-
-    # Make the mixing planes coincident
-    xm = 0.5 * (xs[-1,0,0] + xr[0,0,0])
-    xs[-1,:,:] = xm
-    xr[0,:,:] = xm
-
-    f, a = plt.subplots()
-    a.plot(np.diff(xr[:,0,0]),'-x')
-    # Plot out the blade shapes
-    f, a = plt.subplots()
-    a.plot(xy_stator[0,:],xy_stator[1:,:].T,'-x')
-    a.plot(xy_rotor[0,:],xy_rotor[1:,:].T,'-x')
-    a.plot(xy_stator[0,:],xy_stator[1:,:].T + s_c[0] * cx_vane,'-x')
-    a.plot(xy_rotor[0,:],xy_rotor[1:,:].T + s_c[1] * cx_rotor,'-x')
-    a.axis('equal')
-    plt.show()
-
-    # Assemble guess
-    xg = np.array([-1., xy_stator[0,0],  xy_stator[0,-1],
-                        xy_rotor[0,0],  xy_rotor[0,-1], 1.])
-    Pog = np.array(nd_stage.Po_Poin) * Poin
-    Pog = np.insert(Pog, [0, 1], [Pog[0], Pog[1]])
-    Pog = np.append(Pog, Pog[-1])
-
-    Tog = np.array(nd_stage.To_Toin) * Toin
-    Tog = np.insert(Tog, [0, 1], [Tog[0], Tog[1]])
-    Tog = np.append(Tog, Tog[-1])
-
-    Mag = np.array(nd_stage.Ma_all)
-    Mag = np.insert(Mag, [0, 1], [Mag[0], Mag[1]])
-    Mag = np.append(Mag, Mag[-1])
-
-    Alg = np.array(nd_stage.Al_all)
-    Alg = np.insert(Alg, [0, 1], [Alg[0], Alg[1]])
-    Alg = np.append(Alg, Alg[-1])
-
-    print(np.shape(xg))
-    print(np.shape(Mag))
-    print(Mag)
-
-    # f,a = plt.subplots(4,1)
-    # a[0].plot(xg,Pog,'k-x')
-    # a[1].plot(xg,Tog,'k-x')
-    # a[2].plot(xg,Mag,'k-x')
-    # a[3].plot(xg,Alg,'k-x')
-    # plt.show()
-
-    g = ts_tstream_grid.TstreamGrid()
-    # g = None
-    add_to_grid(g, xs, rs, rts, 0, slip_vane)
-    add_to_grid(g, xr, rr, rtr, 1)
-
-    for bid in [0,1]:
-        guess_block(g, bid, xg, Pog, Tog, Mag, Alg, gamma, cp, cv, rgas)
-
-    # Inlet
-    ni, nj, nk = np.shape(xs)
-    pin = ts_tstream_type.TstreamPatch()
-    pin.kind = ts_tstream_patch_kind.inlet
-    pin.bid = 0
-    pin.ist = 0
-    pin.ien = 1
-    pin.jst = 0
-    pin.jen = nj
-    pin.kst = 0
-    pin.ken = nk
-    pin.nxbid = 0
-    pin.nxpid = 0
-    pin.idir = 6
-    pin.jdir = 1
-    pin.kdir = 2
-    pin.pid = g.add_patch(0, pin)
-
-    bid=0
-    pid=pin.pid
-    print(pin.pid)
-    yaw = np.zeros(( nk,  nj), np.float32)
-    pitch = np.zeros(( nk,  nj), np.float32)
-    pstag = np.zeros(( nk,  nj), np.float32)
-    tstag = np.zeros(( nk,  nj), np.float32)
-
-    pstag += Poin
-    tstag += Toin
-    yaw += 0.0
-    pitch += 0.0
-
-    g.set_pp("yaw", ts_tstream_type.float, bid, pid, yaw)
-    g.set_pp("pitch", ts_tstream_type.float, bid, pid, pitch)
-    g.set_pp("pstag", ts_tstream_type.float, bid, pid, pstag)
-    g.set_pp("tstag", ts_tstream_type.float, bid, pid, tstag)
-    g.set_pv("rfin", ts_tstream_type.float, bid, pid, 0.5)
-    g.set_pv("sfinlet", ts_tstream_type.float, bid, pid, 1.0)
-
-    # Outlet
-    ni, nj, nk = np.shape(xr)
-    pout = ts_tstream_type.TstreamPatch()
-    pout.kind = ts_tstream_patch_kind.outlet
-    pout.bid = 1
-    pout.ist = ni-1
-    pout.ien = ni
-    pout.jst = 0
-    pout.jen = nj
-    pout.kst = 0
-    pout.ken = nk
-    pout.nxbid = 0
-    pout.nxpid = 0
-    pout.idir = 6
-    pout.jdir = 1
-    pout.kdir = 2
-    pout.pid = g.add_patch(1, pout)
-
-    g.set_pv("throttle_type", ts_tstream_type.int, pout.bid, pout.pid, 0)
-    g.set_pv("ipout", ts_tstream_type.int, pout.bid, pout.pid, 3)
-    g.set_pv("pout", ts_tstream_type.float, pout.bid, pout.pid, Pout)
-
-    # mixing upstream
-    ni, nj, nk = np.shape(xs)
-    pmix1 = ts_tstream_type.TstreamPatch()
-    pmix1.kind = ts_tstream_patch_kind.mixing
-    pmix1.bid = 0
-    pmix1.ist = ni-1
-    pmix1.ien = ni
-    pmix1.jst = 0
-    pmix1.jen = nj
-    pmix1.kst = 0
-    pmix1.ken = nk
-    pmix1.nxbid = 1
-    pmix1.nxpid = pout.pid+1
-    pmix1.idir = 6
-    pmix1.jdir = 1
-    pmix1.kdir = 2
-    pmix1.pid = g.add_patch(0, pmix1)
-
-    # mixing downstream
-    ni, nj, nk = np.shape(xr)
-    pmix2 = ts_tstream_type.TstreamPatch()
-    pmix2.kind = ts_tstream_patch_kind.mixing
-    pmix2.bid = 1
-    pmix2.ist = 0
-    pmix2.ien = 1
-    pmix2.jst = 0
-    pmix2.jen = nj
-    pmix2.kst = 0
-    pmix2.ken = nk
-    pmix2.nxbid = 0
-    pmix2.nxpid = pmix1.pid
-    pmix2.idir = 6
-    pmix2.jdir = 1
-    pmix2.kdir = 2
-    pmix2.pid = g.add_patch(1, pmix2)
-
-    # Mixing length limit
-    for bid, nbi in zip([0,1],nb):
-        pitchnow = 2. * np.pi * rm[0]  / nbi
-        g.set_bv("xllim", ts_tstream_type.float, bid, 0.03*pitchnow)
-        g.set_bv("fblade", ts_tstream_type.float, bid, nbi)
-        g.set_bv("nblade", ts_tstream_type.float, bid, nbi)
-
-    # other block variables
+def set_variables(g):
     for bid in g.get_block_ids():
         g.set_bv("fmgrid", ts_tstream_type.float, bid, 0.2)
         g.set_bv("poisson_fmgrid", ts_tstream_type.float, bid, 0.05)
+        g.set_bv("xllim_free", ts_tstream_type.float, bid, 0.0)
+        g.set_bv("free_turb", ts_tstream_type.float, bid, 0.0)
 
     g.set_av("restart", ts_tstream_type.int, 1)
     g.set_av("poisson_restart", ts_tstream_type.int, 0)
-    g.set_av("poisson_nstep", ts_tstream_type.int, 10000)
+    g.set_av("poisson_nstep", ts_tstream_type.int, 5000)
     g.set_av("ilos", ts_tstream_type.int, 1)
     g.set_av("nlos", ts_tstream_type.int, 5)
     g.set_av("nstep", ts_tstream_type.int, 16000)
+    # g.set_av("nstep", ts_tstream_type.int, 20)
     g.set_av("nchange", ts_tstream_type.int, 1000)
     g.set_av("dampin", ts_tstream_type.float, 5.0)
     g.set_av("sfin", ts_tstream_type.float, 0.5)
@@ -802,57 +602,26 @@ def generate(fname, phi, psi, Lam, Ma, eta, gap_chord, slip_vane, guess_file=Non
     g.set_av("rfmix", ts_tstream_type.float, 0.01)
     g.set_av("viscosity", ts_tstream_type.float, muref)
     g.set_av("viscosity_law", ts_tstream_type.int, 1)
-
     g.set_av("write_yplus", ts_tstream_type.int, 1)
-    # initial guess
 
-    Vguess = Vref * np.cos(Alr_sta[1])
-    Pinguess = [Poin, np.mean([Poin,Pout])]
-    Poutguess = [np.mean([Poin,Pout]), Pout]
-    Toguess = [Toin,Toin*0.8]
-    for bid in g.get_block_ids():
-
-        # g.set_bv("ftype", ts_tstream_type.int, bid, 5)
-        # g.set_bv("vgridin", ts_tstream_type.float, bid, Vguess)
-        # g.set_bv("vgridout", ts_tstream_type.float, bid, Vguess)
-        # g.set_bv("pstatin", ts_tstream_type.float, bid, Pinguess[bid])
-        # g.set_bv("pstatout", ts_tstream_type.float, bid, Poutguess[bid])
-        # g.set_bv("tstagin", ts_tstream_type.float, bid, Toguess[bid])
-        # g.set_bv("tstagout", ts_tstream_type.float, bid, Toguess[bid])
-
-        g.set_bv("xllim_free", ts_tstream_type.float, bid, 0.0)
-        g.set_bv("free_turb", ts_tstream_type.float, bid, 0.0)
-
-        
-    # Rotation
-    rpm_rotor = np.array([Omega / 2. / np.pi * 60.]).astype(np.float32)
-    for bid, rpm in zip([0,1],[0.,rpm_rotor[0]]):
-        print(bid)
-        print(rpm)
+def set_rotation(g,bids,rpm,spin_j):
+    for bid in bids:
         g.set_bv("rpm", ts_tstream_type.float, bid, rpm)
         g.set_bv("rpmi1", ts_tstream_type.float, bid, rpm)
         g.set_bv("rpmi2", ts_tstream_type.float, bid, rpm)
-        g.set_bv("rpmj1", ts_tstream_type.float, bid, rpm)
-        g.set_bv("rpmj2", ts_tstream_type.float, bid, rpm)
+        if spin_j:
+            g.set_bv("rpmj1", ts_tstream_type.float, bid, rpm)
+            g.set_bv("rpmj2", ts_tstream_type.float, bid, rpm)
         g.set_bv("rpmk1", ts_tstream_type.float, bid, rpm)
         g.set_bv("rpmk2", ts_tstream_type.float, bid, rpm)
 
-    # Load guess from file if provided
-    if guess_file is not None:
-        print("Loading guess from file...")
-        # Load grid
-        tsr1 = ts_tstream_reader.TstreamReader()
-        g1 = tsr1.read(guess_file)
-        # Variables to copy
-        varnames = ['ro','rovx','rovr','rorvt','roe']
-        # Loop over blocks in new design
-        for bid in g.get_block_ids():
-            for vi in varnames:
-                # Apply flow variables from guess to new grid
-                g.set_bp(vi, ts_tstream_type.float, bid, g1.get_bp(vi,bid) )
-
-
-    g.write_hdf5(fname)
+def set_xllim(g, frac):
+    # Mixing length limit
+    for bid in g.get_block_ids():
+        nb = g.get_bv('nblade',bid)
+        rm = np.mean(g.get_bp('r',bid))
+        pitch = 2. * np.pi * rm  / float(nb)
+        g.set_bv("xllim", ts_tstream_type.float, bid, frac*pitch)
 
 if __name__ == "__main__":
 
@@ -861,7 +630,7 @@ if __name__ == "__main__":
     Poin = 16.0e5
     rgas = 287.14
     cp = rgas * ga / (ga - 1.)
-    htr = 0.6
+    htr = 0.8
     Omega = 2.*np.pi*50.
     Z = 0.85
     phi = 0.6
@@ -872,8 +641,12 @@ if __name__ == "__main__":
     eta = 0.95
     Re = 4.0e6
 
+    rpm_rotor = np.array([Omega / 2. / np.pi * 60.]).astype(np.float32)
+
     # Get velocity triangles
     stage = nondim_stage_from_Lam( phi, psi, Lam, Alin, Ma, ga, eta )
+
+    Pout = stage.Pout_Poin * Poin
 
     # Get mean radius and spans
     rm, Dr = annulus_line(
@@ -888,6 +661,13 @@ if __name__ == "__main__":
 
     # Set chord based on Reynolds number
     c = chord_Re(Re, Toin, Poin, stage.Ma[1], ga, rgas, stage.Yp[0])
+
+    # Round pitch-to-chord to nearest whole number of blades
+    nb = np.round(2. * np.pi * rm / (np.array(s_c) * c)).astype(int)
+    print('nb',nb)
+    print('old s_c',s_c)
+    s_c =  2. * np.pi * rm /nb / c
+    print('new s_c',s_c)
 
     # Number of radial points
     dr_c = 0.05  # Radial grid spacing as fraction of chord
@@ -932,29 +712,69 @@ if __name__ == "__main__":
     a.plot(blade_x,blade_rt[:,jp,:],'r-')
     a.axis('equal')
 
-    add_to_grid(None, vane_x, vane_r, vane_rt, 0, True)
+    # Make grid, add the blocks
+    bid_vane = 0
+    bid_blade = 1
+    g = ts_tstream_grid.TstreamGrid()
+    add_to_grid(g, vane_x, vane_r, vane_rt, vane_i, bid_vane)
+    add_to_grid(g, blade_x, blade_r, blade_rt, blade_i, bid_blade)
+
+    # Inlet
+    ni, nj, nk = np.shape(vane_rt)
+    inlet = make_patch(
+        kind='inlet', bid=bid_vane, i=(0,1), j=(0,nj), k=(0,nk),
+        )
+    inlet.pid = g.add_patch(bid_vane, inlet)
+    apply_inlet(g, bid_vane, inlet.pid, Poin, Toin, nk, nj)
+
+    # Outlet
+    ni, nj, nk = np.shape(blade_rt)
+    outlet = make_patch( kind='outlet', bid=bid_blade,
+            i=(ni-1,ni), j=(0,nj), k=(0,nk) )
+    outlet.pid = g.add_patch(bid_blade, outlet)
+    g.set_pv("throttle_type", ts_tstream_type.int, bid_blade, outlet.pid, 0)
+    g.set_pv("ipout", ts_tstream_type.int, bid_blade, outlet.pid, 3)
+    g.set_pv("pout", ts_tstream_type.float, bid_blade, outlet.pid, Pout)
+
+    # Mixing upstream
+    ni, nj, nk = np.shape(vane_rt)
+    mix_up = make_patch(
+        kind='mixing', bid=bid_vane, i=(ni-1,ni), j=(0,nj), k=(0,nk),
+        nxbid=bid_blade, nxpid=outlet.pid+1, dirs=(6,1,2))
+    mix_up.pid = g.add_patch(bid_vane, mix_up)
+
+    # Mixing downstream
+    ni, nj, nk = np.shape(blade_rt)
+    mix_dn = make_patch(
+        kind='mixing', bid=bid_blade, i=(0,1), j=(0,nj), k=(0,nk),
+        nxbid=bid_vane, nxpid=outlet.pid+1, dirs=(6,1,2))
+    mix_dn.pid = g.add_patch(bid_blade, mix_dn)
+
+    # Apply application/block variables
+    set_variables(g)
+
+    set_rotation(g,[bid_vane],0.,spin_j=False)
+    set_rotation(g,[bid_blade],rpm_rotor,spin_j=False)
+
+    for bid, nbi in zip(g.get_block_ids(),nb):
+        g.set_bv("fblade", ts_tstream_type.float, bid, nbi)
+        g.set_bv("nblade", ts_tstream_type.float, bid, nbi)
+
+    set_xllim(g, 0.03)
+
+    # Initial guess
+    xg = np.array(vane_xc[:-1] + blade_xc[1:])*c
+    Pog = np.repeat(stage.Po_Poin * Poin,2)
+    Tog = np.repeat(stage.To_Toin * Toin,2)
+    Mag = np.repeat(stage.Ma,2)
+    Alg = np.repeat(stage.Al,2)
+
+    for bid in g.get_block_ids():
+        guess_block(g,bid,xg,Pog,Tog,Mag,Alg,ga, rgas)
+
+    g.set_av('ga', ts_tstream_type.float, ga)
+    g.set_av('cp', ts_tstream_type.float, cp)
+
+    g.write_hdf5('test.hdf5')
+
     quit()
-
-    nv = 25
-    phi_v = np.linspace(0.4, 1.2, nv)
-    psi_v = np.linspace(1.0, 2.4, nv)
-    Lam_v = np.linspace(0.4, 0.6, nv)
-
-    phi_g, psi_g, Lam_g = np.meshgrid(phi_v, psi_v, Lam_v)
-
-    Al_soln = []
-    invalid = 0
-    for phi, psi, Lam in zip(phi_g.flat, psi_g.flat, Lam_g.flat):
-        try:
-            stage = nondim_stage_from_Lam(
-                phi=phi, psi=psi, Lam=Lam, Alin=-10., Ma=1.1, ga=1.33, eta=0.8
-                )
-            Al_soln.append(stage.Al[-1])
-        except RuntimeError:
-            invalid += 1
-
-    Al_soln = np.array(Al_soln)
-    print(float(invalid)/float(nv**3.))
-    print(Al_soln.min(),Al_soln.max())
-    plt.hist(Al_soln.flat,100)
-    plt.show()
