@@ -9,19 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-# Define a namedtuple to store all information about a vane design
-vane_params = [
-    'Ma_in',  # Relative Mach numbers at stator, rotor inlet
-    'Ma_out',  # Relative Mach numbers at stator, rotor outlet
-    'Yp',  # Stagnation P loss coefficients for stator, rotor
-    'chi',  # Metal angles for stator in, out, rotor in, out
-    'Ax_Axin',  # Normalised areas
-    'PR',  # Stagnation pressure ratio
-    'Vx_rat',  # Axial velocity ratios w.r.t. rotor inlet
-    'rm_rat',  # Mean radius ratios w.r.t. rotor inlet
-]
-NonDimVane = namedtuple('NonDimVane', vane_params)
-
 # Define a namedtuple to store all information about a stage design
 # Note that the reference blade speed is taken at rotor inlet
 stage_params = [
@@ -36,8 +23,6 @@ stage_params = [
 ]
 NonDimStage = namedtuple('NonDimStage', stage_params)
 
-nxd = 20
-nxu = 100
 
 def nondim_stage_from_Al(
                          phi, psi, Al,  # Velocity triangles
@@ -174,19 +159,6 @@ def nondim_stage_from_Lam(
                                    Ma, ga, eta, Vx_rat)
 
     return stg_out
-
-def scale_vane(nd_vane, inlet, htr):
-    """Scale an N-D vane to a particular dimensional condition."""
-
-    # Pick mean radius arbitrarily
-    rm = np.ones((2,))
-
-    # Use hub-to-tip ratio to set span (mdot will therefore float)
-    Dr_rm = 2. * (1. - htr) / (1. + htr)
-    Dr = rm * Dr_rm * nd_vane.Ax_Axin[:2]
-    chi = nd_vane.chi[:2]
-
-    return rm, Dr, chi
 
 def annulus_line(U_sqrt_cpToin, Ax_Axin, htr, cpToin, Omega):
     """Get dimensional annulus line for given stage design and inlet state.
@@ -410,12 +382,41 @@ def blade_to_blade_mesh(x, r, ii, chi, nrt, s_c):
 
     return rt
 
+def make_patch(kind, i, j, k, nxbid=0, nxpid=0, dirs=None)
+    # Periodic patches
+    p = ts_tstream_type.TstreamPatch()
 
-def add_to_grid(g, x, r, rt, bid, slip_wall=False):
+    p.kind = getattr(ts_tstream_patch_kind, kind)
+
+    p.ist, p.ien = i
+    p.jst, p.jen = j
+    p.kst, p.ken = k
+
+    p.nxbid = nxbid
+    p.nxpid = nxpid
+
+    if dirs is not None:
+        p.idir, p.jdir, p.kdir = dirs
+    else:
+        p.idir, p.jdir, p.kdir = (0,1,2)
+
+    p.nface = 0
+    p.nt = 0
+
+    return p
+
+def add_to_grid(g, xin, rin, rtin, ind, bid):
     """From mesh coordinates, add a block with patches to TS grid object"""
-    ni, nj, nk = np.shape(x)
+    ni, nj, nk = np.shape(rtin)
+    rt = rtin+0.
+    r = np.repeat(rin[:,:,None],nk,axis=2)
+    x = np.tile(xin[:,None,None],(1,nj,nk))
+    print(np.shape(x))
+    print(np.shape(r))
+    print(np.shape(rt))
 
     # Permute the coordinates into C-style ordering
+    # Turbostream is very fussy about this
     xp = np.zeros((nk, nj, ni), np.float32)
     rp = np.zeros((nk, nj, ni), np.float32)
     rtp = np.zeros((nk, nj, ni), np.float32)
@@ -426,167 +427,53 @@ def add_to_grid(g, x, r, rt, bid, slip_wall=False):
                 rp[k,j,i] = r[i,j,k]
                 rtp[k,j,i] = rt[i,j,k]
 
+    # Generate new block
     b = ts_tstream_type.TstreamBlock()
     b.bid = bid
+    b.ni, b.nj, b.nk = ni, nj, nk
     b.np = 0
-    b.ni = ni
-    b.nj = nj
-    b.nk = nk
     b.procid = 0
     b.threadid = 0
+
+    # Add to grid with coordinates
     g.add_block(b)
-    g.set_bp("x", ts_tstream_type.float, bid, xp)
-    g.set_bp("r", ts_tstream_type.float, bid, rp)
-    g.set_bp("rt", ts_tstream_type.float, bid,rtp)
+    for vname, vval in zip(['x','r','rt'],[xp,rp,rtp]):
+        g.set_bp(vname, ts_tstream_type.float, bid, vval)
 
-    # Locate where blades are 
-    theta = rt/r
-    dt = theta[:,0,-1] - theta[:,0,0]
-    t_pitch = dt[0]
-    tol = 1e-6
-    ist = int(np.argmax(dt<t_pitch-tol))
-    ien = ni - int(np.argmax(dt[::-1]<t_pitch-tol))
-    print(dt.max(),dt.min())
-    print('t_pitch',t_pitch)
-    print('ist',ist)
-    print('ien',ien)
-    print('ni',ni)
+    # Leading and trailing edges
+    ile, ite = ii
 
-    # Periodic patches
-    p1 = ts_tstream_type.TstreamPatch()
-    p1.kind = ts_tstream_patch_kind.periodic
-    p1.bid = bid
-    p1.ist = 0
-    p1.ien = ist
-    p1.jst = 0
-    p1.jen = nj
-    p1.kst = 0
-    p1.ken = 1
-    p1.nxbid = bid
-    p1.nxpid = 1
-    p1.idir = 0
-    p1.jdir = 1
-    p1.kdir = 6
-    p1.pid = g.add_patch(bid, p1)
+    # Add periodic patches first
 
-    p2 = ts_tstream_type.TstreamPatch()
-    p2.kind = ts_tstream_patch_kind.periodic
-    p2.bid = bid
-    p2.ist = 0
-    p2.ien = ist
-    p2.jst = 0
-    p2.jen = nj
-    p2.kst = nk-1
-    p2.ken = nk
-    p2.nxbid = bid
-    p2.nxpid = 0
-    p2.idir = 0
-    p2.jdir = 1
-    p2.kdir = 6
-    p2.pid = g.add_patch(bid, p2)
+    # Upstream of LE
+    periodic_up_1 = make_patch(
+        kind='periodic', i=(0,ile+1), j=(0,nj), k=(0,1), dirs=(0,1,6),
+        nxbid=bid, nxpid=1,
+        )
+    periodic_up_2 = make_patch(
+        kind='periodic', i=(0,ile+1), j=(0,nj), k=(nk-1,nk), dirs=(0,1,6),
+        nxbid=bid, nxpid=0,
+        )
+    g.add_patch(bid, periodic_up_1)
+    g.add_patch(bid, periodic_up_2)
 
-    # Periodic patches
-    p1a = ts_tstream_type.TstreamPatch()
-    p1a.kind = ts_tstream_patch_kind.periodic
-    p1a.bid = bid
-    p1a.ist = ien
-    p1a.ien = ni
-    p1a.jst = 0
-    p1a.jen = nj
-    p1a.kst = 0
-    p1a.ken = 1
-    p1a.nxbid = bid
-    p1a.nxpid = 3
-    p1a.idir = 0
-    p1a.jdir = 1
-    p1a.kdir = 6
-    p1a.pid = g.add_patch(bid, p1a)
-
-    p2a = ts_tstream_type.TstreamPatch()
-    p2a.kind = ts_tstream_patch_kind.periodic
-    p2a.bid = bid
-    p2a.ist = ien
-    p2a.ien = ni
-    p2a.jst = 0
-    p2a.jen = nj
-    p2a.kst = nk-1
-    p2a.ken = nk
-    p2a.nxbid = bid
-    p2a.nxpid = 2
-    p2a.idir = 0
-    p2a.jdir = 1
-    p2a.kdir = 6
-    p2a.pid = g.add_patch(bid, p2a)
+    # Downstream of TE
+    periodic_dn_1 = make_patch(
+        kind='periodic', i=(ite,ni), j=(0,nj), k=(0,1), dirs=(0,1,6),
+        nxbid=bid, nxpid=3,
+        )
+    periodic_dn_2 = make_patch(
+        kind='periodic', i=(ite,ni), j=(0,nj), k=(nk-1,nk), dirs=(0,1,6),
+        nxbid=bid, nxpid=2,
+        )
+    g.add_patch(bid, periodic_dn_1)
+    g.add_patch(bid, periodic_dn_2)
 
     # Slip wall
-    p3 = ts_tstream_type.TstreamPatch()
-    p3.kind = ts_tstream_patch_kind.slipwall
-    p3.bid = bid
-    p3.ist = 0
-    p3.ien = ni
-    p3.jst = 0
-    p3.jen = 1
-    p3.kst = 0
-    p3.ken = nk
-    p3.nxbid = 0
-    p3.nxpid = 0
-    p3.idir = 0
-    p3.jdir = 6
-    p3.kdir = 2
-    p3.pid = g.add_patch(bid, p3)
-
-    # Slip wall
-    p4 = ts_tstream_type.TstreamPatch()
-    p4.kind = ts_tstream_patch_kind.slipwall
-    p4.bid = bid
-    p4.ist = 0
-    p4.ien = ni
-    p4.jst = nj-1
-    p4.jen = nj
-    p4.kst = 0
-    p4.ken = nk
-    p4.nxbid = 0
-    p4.nxpid = 0
-    p4.idir = 0
-    p4.jdir = 6
-    p4.kdir = 2
-    p4.pid = g.add_patch(bid, p4)
-
-    if slip_wall:
-
-        # Slip wall on blade surf
-        psa = ts_tstream_type.TstreamPatch()
-        psa.kind = ts_tstream_patch_kind.slipwall
-        psa.bid = bid
-        psa.ist = ist
-        psa.ien = ien
-        psa.jst = 0
-        psa.jen = nj
-        psa.kst = 0
-        psa.ken = 1
-        psa.nxbid = 0
-        psa.nxpid = 0
-        psa.idir = 0
-        psa.jdir = 1
-        psa.kdir = 2
-        psa.pid = g.add_patch(bid, psa)
-
-        psb = ts_tstream_type.TstreamPatch()
-        psb.kind = ts_tstream_patch_kind.slipwall
-        psb.bid = bid
-        psb.ist = ist
-        psb.ien = ien
-        psb.jst = 0
-        psb.jen = nj
-        psb.kst = nk-1
-        psb.ken = nk
-        psb.nxbid = 0
-        psb.nxpid = 0
-        psb.idir = 0
-        psb.jdir = 1
-        psb.kdir = 2
-        psb.pid = g.add_patch(bid, psb)
-
+    slip_j0 = make_patch( kind='slipwall', i=(0,ni), j=(0,1), k=(0,nk) )
+    slip_nj = make_patch( kind='slipwall', i=(0,ni), j=(nj-1,nj), k=(0,nk) )
+    g.add_patch(bid, slip_j0)
+    g.add_patch(bid, slip_nj)
 
     # Default avs
     for name in ts_tstream_default.av:
@@ -596,6 +483,7 @@ def add_to_grid(g, x, r, rt, bid, slip_wall=False):
         else:
             g.set_av(name, ts_tstream_type.float, val)
 
+    # Default bvs
     for name in ts_tstream_default.bv:
         for bid in g.get_block_ids():
             val = ts_tstream_default.bv[name]
@@ -605,7 +493,6 @@ def add_to_grid(g, x, r, rt, bid, slip_wall=False):
                 g.set_bv(name, ts_tstream_type.float, bid, val)
 
 def guess_block(g, bid, x, Po, To, Ma, Al, ga, cp, cv, rgas):
-
     b = g.get_block(bid)
     ni, nj, nk = (b.ni, b.nj, b.nk)
     xb = g.get_bp('x', bid)
@@ -1021,11 +908,6 @@ if __name__ == "__main__":
         blade_r[blade_i,:]/rm * np.tan(np.radians(
             np.atleast_2d(stage.Al_rel[1:])).T)))
 
-    # # Make blades
-    # f,a = plt.subplots()
-    # a.plot(vane_Al.T,vane_r[vane_i,:].T,'-x')
-    # a.plot(blade_Al.T,blade_r[blade_i,:].T,'-x')
-
     nrt = 65
     vane_rt = blade_to_blade_mesh(
         vane_x,
@@ -1049,13 +931,8 @@ if __name__ == "__main__":
     a.plot(vane_x,vane_rt[:,jp,:],'k-')
     a.plot(blade_x,blade_rt[:,jp,:],'r-')
     a.axis('equal')
-    plt.show()
 
-    print(np.shape(vane_x))
-    print(np.shape(vane_r))
-    print(np.shape(vane_rt))
-
-    # xv, rv, rtv = row_mesh(vane_section, rm*np.ones((2,)), Dr[:2], [1., 3.], c)
+    add_to_grid(None, vane_x, vane_r, vane_rt, 0, True)
     quit()
 
     nv = 25
