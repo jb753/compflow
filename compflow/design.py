@@ -218,11 +218,11 @@ def annulus_line(U_sqrt_cpToin, Ax_Axin, htr, cpToin, Omega):
 
     # Use hub-to-tip ratio to set span (mdot will therefore float)
     Dr_rm = 2. * (1. - htr) / (1. + htr)
-    Dr = rm * Dr_rm * np.array(Ax_Axin)
+    Dr = rm * Dr_rm * np.array(Ax_Axin) / Ax_Axin[1]
 
     return rm, Dr
 
-def blade_section(chi, dev=0.):
+def blade_section(chi):
     """Makes a simple blade geometry from flow angles."""
     # Copy defaults from MEANGEN (Denton)
     tle     = 0.04 # LEADING EDGE THICKNESS/AXIAL CHORD.
@@ -234,15 +234,9 @@ def blade_section(chi, dev=0.):
     tk_typ   = 2.0  # FORM OF BLADE THICKNESS DISTRIBUTION.
 
 
-    # In turbines, deviation is underturning, always towards axial dirn
-    if chi[1] > 0:
-        chi_dev = (chi[0], chi[1]+dev)
-    else:
-        chi_dev = (chi[0], chi[1]-dev)
-
     # Camber line
     xhat = 0.5*(1.-np.cos(np.pi * np.linspace(0.,1.,100)))
-    tanchi_lim = np.tan(np.radians(chi_dev))
+    tanchi_lim = np.tan(np.radians(chi))
     tanchi = np.interp(xhat,(0.,1.),tanchi_lim)
     yhat = np.insert(scipy.integrate.cumtrapz(tanchi, xhat), 0, 0.)
 
@@ -268,19 +262,18 @@ def blade_section(chi, dev=0.):
     yup = yhat + thick*0.5*fac_thin
     ydown = yhat - thick*0.5*fac_thin
 
-    # Plot
-    f,a = plt.subplots()
-    a.plot(xhat,yhat,'k--')
-    a.plot(xhat,yup,'-x')
-    a.plot(xhat,ydown,'-x')
-    a.axis('equal')
-    plt.show()
+    # # Plot
+    # # f,a = plt.subplots()
+    # a.plot(xhat,yhat,'k--')
+    # a.plot(xhat,yup,'-x')
+    # a.plot(xhat,ydown,'-x')
+    # a.axis('equal')
 
     xy = np.vstack((xhat, yup, ydown))
 
     return xy
 
-def pitch_zweifel(Z, Al, Ma, Dr, ga, Yp):
+def pitch(Z, Al, Ma, Dr, ga, Yp):
     """Calculate pitch-to-chord from Zweifel coefficient."""
     Alr = np.radians(Al)
     Po2_P2 = compflow.Po_P_from_Ma(Ma[1], ga)
@@ -315,11 +308,117 @@ def chord_Re(Re, To1, Po1, Ma, ga, rgas, Yp):
     cx = Re * mu / ro2 / V2
     return cx
 
+
+def meridional_mesh(xc, rm, Dr, c, nr):
+    """Generate meridional mesh for a blade row."""
+
+    nxb = 101  # Points along blade chord
+    nxb2 = nxb//2  # Points along blade semi-chord
+
+    # Define a cosinusiodal clustering function
+    clust = 0.5*(1. - np.cos(np.pi * np.linspace(0.,1.0,nxb)))
+    dclust = np.diff(clust)
+    dmin, dmax = dclust.min(), dclust.max()
+
+    # Numbers of points in inlet/outlet
+    nxu = int((xc[1]-xc[0]-0.5)/dmax)
+    nxd = int((xc[3]-xc[2]-0.5)/dmax)
+
+    # Build up the streamwise grid vector
+    x = xc[1] + clust  # Blade
+    x = np.insert(x[1:], 0, x[0]+(clust[nxb2:]-1.0))  # In front of LE
+    x = np.append(x[:-1], x[-1]+(clust[:nxb2]))  # Behind TE
+    if nxu>0:
+        x = np.insert(x[1:], 0, np.linspace(xc[0],x[0],nxu))  # Inlet
+    if nxd>0:
+        x = np.append(x[:-1], np.linspace(x[-1],xc[3],nxd))  # Outlet
+
+    # Trim if needed
+    x = x[x > xc[0]]
+    x = x[x < xc[-1]]
+
+    # Reset endpoints
+    x = np.insert(x, 0, xc[0])
+    x = np.append(x, xc[-1])
+
+    # Number of radial points
+    spf = np.linspace(0.,1.,nr)
+    spf2 = np.atleast_2d(spf).T
+
+    # Now annulus lines
+    rh = np.interp(x, xc[1:3], rm - Dr/2.)
+    rc = np.interp(x, xc[1:3], rm + Dr/2.)
+    rh2 = np.atleast_2d(rh)
+    rc2 = np.atleast_2d(rc)
+    r = spf2*(rc2-rh2) + rh2
+    r = r.T
+
+    # Get indices of edges
+    i_edge = [np.where(x==xc[i])[0][0] for i in [1,2]]
+    i_edge[1] = i_edge[1]+1
+
+    # # Scale by chord
+    x = x*c
+
+    # f,a = plt.subplots()
+    # a.plot(x,r,'k-')
+    # a.axis('equal')
+
+    return x, r, i_edge
+
+def blade_to_blade_mesh(x, r, ii, chi, nrt, s_c):
+    """Generate blade section rt, given merid mesh and flow angles."""
+
+    # Define a cosinusiodal clustering function
+    clust = 0.5*(1. - np.cos(np.pi * np.linspace(0.,1.0,nrt)))
+    clust3 = (clust[...,None,None]).transpose((2,1,0))
+
+
+    # Chord
+    xpass = x[ii[0]:ii[1]] - x[ii[0]]
+    c = xpass.ptp()
+    print(c)
+
+    nj = np.shape(chi)[1]
+    rt = np.empty(np.shape(r) + (nrt,))
+    for j in range(nj):
+
+        # Dimensional section
+        sect_now = blade_section(chi[:,j])* c
+        rt0 = np.interp(xpass,sect_now[0,:],sect_now[1,:])[:,None,None]
+        rt1 = np.interp(xpass,sect_now[0,:],sect_now[2,:])[:,None,None]+s_c*c
+        rt[ii[0]:ii[1],j,:] = (rt0 + (rt1-rt0)*clust3).squeeze()
+
+    # Now deal with inlet and exit ducts
+    # Keep clustering
+    rt[:ii[0],:,:] = rt[ii[0],:,:]
+    rt[ii[1]:,:,:] = rt[ii[1]-1,:,:]
+
+    # Set endpoints to a uniform distribution
+    unif_rt = np.linspace(0.,1.,nrt)
+    unif_rt3 = (unif_rt[...,None,None]).transpose((2,1,0))
+    rt[(0,-1),:,:] = rt[(0,-1),:,0][...,None] + (
+            rt[(0,-1),:,-1] - rt[(0,-1),:,0])[...,None]*unif_rt3
+
+    # Relax clustering linearly
+    lin_x_up = (np.linspace(0.,1.,ii[0]))
+    lin_x_up3 = lin_x_up[...,None,None]
+    lin_x_dn = np.linspace(1.,0.,len(x)-ii[1])
+    lin_x_dn3 = lin_x_dn[...,None,None]
+    rt[:ii[0],:,:] = rt[0,:,:][None,...] + (
+            rt[ii[0],:,:]-rt[0,:,:])[None,...]*lin_x_up3
+    rt[ii[1]:,:,:] = rt[-1,:,:][None,...] + (
+            rt[ii[1],:,:]-rt[-1,:,:])[None,...]*lin_x_dn3
+
+    return rt
+
 def row_mesh(xy, rm, Dr, dx, s):
     """Generate H-mesh for a blade row from surface coords, radii."""
 
     nj = 5
     nk = 65
+
+    # Lay out the 
 
     # get LE and TE posns for later
     xLE = xy[0,0]
@@ -677,7 +776,6 @@ def guess_block(g, bid, x, Po, To, Ma, Al, ga, cp, cv, rgas):
     g.set_bp("roe", ts_tstream_type.float, bid, roebp)
 
 
-
 def generate(fname, phi, psi, Lam, Ma, eta, gap_chord, slip_vane, guess_file=None ):
     gamma = 1.4
     rgas = 287.14
@@ -707,7 +805,7 @@ def generate(fname, phi, psi, Lam, Ma, eta, gap_chord, slip_vane, guess_file=Non
     # Get radii
     rm, Dr, _, _ = scale_stage(nd_stage, inlet, Omega, htr)
 
-	# Blade sections
+    # Blade sections
     xy_stator = blade_section(nd_stage.chi[:2])
     xy_rotor = blade_section(nd_stage.chi[2:])
 
@@ -728,7 +826,6 @@ def generate(fname, phi, psi, Lam, Ma, eta, gap_chord, slip_vane, guess_file=Non
     cx_rotor = cx_vane
     cx = np.array((cx_vane, cx_rotor))
 
-    print(nd_stage)
     # Put the blades on a common coordinate system
     gap = gap_chord * cx_vane
     xy_stator = xy_stator * cx_vane
@@ -991,35 +1088,90 @@ if __name__ == "__main__":
     Poin = 16.0e5
     rgas = 287.14
     cp = rgas * ga / (ga - 1.)
-    htr = 0.9
+    htr = 0.6
     Omega = 2.*np.pi*50.
     Z = 0.85
     phi = 0.6
     psi = 1.6
     Lam = 0.5
     Alin=0.
-    Ma = 0.8
-    eta = 0.9
+    Ma = 0.75
+    eta = 0.95
+    Re = 4.0e6
 
+    # Get velocity triangles
     stage = nondim_stage_from_Lam( phi, psi, Lam, Alin, Ma, ga, eta )
 
+    # Get mean radius and spans
     rm, Dr = annulus_line(
         stage.U_sqrt_cpToin, stage.Ax_Axin, htr, cp*Toin, Omega,
         )
 
-    vane_section = blade_section(stage.Al[:2])
-    rotor_section = blade_section(stage.Al_rel[1:])
-
+    # Calculate pitch-to-chord ratio (const Zweifel)
     s_c = (
-        pitch_zweifel(Z, stage.Al[:2], stage.Ma[:2], Dr[:2], ga, stage.Yp[0]),
-        pitch_zweifel(Z, stage.Al_rel[1:], stage.Ma_rel[1:], Dr[1:], ga, stage.Yp[1])
+        pitch(Z, stage.Al[:2], stage.Ma[:2], Dr[:2], ga, stage.Yp[0]),
+        pitch(Z, stage.Al_rel[1:], stage.Ma_rel[1:], Dr[1:], ga, stage.Yp[1])
         )
-    print(s_c)
 
-    c = chord_Re(4.e6, Toin, Poin, stage.Ma[1], ga, rgas, stage.Yp[0])
-    print(c)
+    # Set chord based on Reynolds number
+    c = chord_Re(Re, Toin, Poin, stage.Ma[1], ga, rgas, stage.Yp[0])
 
+    # Number of radial points
+    dr_c = 0.05  # Radial grid spacing as fraction of chord
+    nr = np.max((int(Dr[1] / (dr_c * c)),4))
+    print('nr',nr)
+
+    # Get meridional grids
+    vane_xc = [-5.,0.,1., 1.5]
+    blade_xc = [1.5,2.,3.,8.]
+    vane_x, vane_r, vane_i  = meridional_mesh(vane_xc, rm, Dr[:2], c, nr)
+    blade_x, blade_r, blade_i = meridional_mesh(blade_xc, rm, Dr[1:], c, nr)
+
+    # Radial flow angle variations
+    vane_Al = np.degrees(np.arctan(
+        vane_r[vane_i,:]/rm * np.tan(np.radians(
+        np.atleast_2d(stage.Al[:2])).T)))
+    blade_Al = np.degrees(np.arctan(
+        blade_r[blade_i,:]/rm * np.tan(np.radians(
+            np.atleast_2d(stage.Al_rel[1:])).T)))
+
+    # # Make blades
+    # f,a = plt.subplots()
+    # a.plot(vane_Al.T,vane_r[vane_i,:].T,'-x')
+    # a.plot(blade_Al.T,blade_r[blade_i,:].T,'-x')
+
+    nrt = 65
+    vane_rt = blade_to_blade_mesh(
+        vane_x,
+        vane_r,
+        vane_i,
+        vane_Al,
+        nrt,
+        s_c[0],
+        )
+    blade_rt = blade_to_blade_mesh(
+        blade_x,
+        blade_r,
+        blade_i,
+        blade_Al,
+        nrt,
+        s_c[1],
+        )
+
+    jp = -1
+    f,a = plt.subplots()
+    a.plot(vane_x,vane_rt[:,jp,:],'k-')
+    a.plot(blade_x,blade_rt[:,jp,:],'r-')
+    a.axis('equal')
+    plt.show()
+
+    print(np.shape(vane_x))
+    print(np.shape(vane_r))
+    print(np.shape(vane_rt))
+
+    # xv, rv, rtv = row_mesh(vane_section, rm*np.ones((2,)), Dr[:2], [1., 3.], c)
     quit()
+
     nv = 25
     phi_v = np.linspace(0.4, 1.2, nv)
     psi_v = np.linspace(1.0, 2.4, nv)
