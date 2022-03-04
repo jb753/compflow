@@ -410,7 +410,7 @@ def Ma_from_mcpTo_AP(mcpTo_AP, ga):
     """
     return _restore_shape(fort_to_Ma.mcpto_ap, (mcpTo_AP, ga))
 
-def Ma_from_A_Acrit(A_Acrit, ga):
+def Ma_from_A_Acrit(A_Acrit, ga, sup=False):
     r"""Mach number as function of area to choking area ratio.
 
     The inverse of :func:`compflow.A_Acrit_from_Ma`, which at a given value of
@@ -432,13 +432,16 @@ def Ma_from_A_Acrit(A_Acrit, ga):
         Ratio of area to choking area, :math:`A/A_*`.
     ga : float
         Ratio of specific heats, :math:`\gamma`.
+    sup : bool, default False
+        If true, return the supersonic solution, otherwise the subsonic
+        solution.
 
     Returns
     -------
     Ma : array
         Mach number, :math:`\Ma`.
     """
-    return _restore_shape(fort_to_Ma.a_acrit, (A_Acrit, ga))
+    return _restore_shape(fort_to_Ma.a_acrit, (A_Acrit, ga, sup))
 
 def Ma_from_Mash(Mash, ga):
     r"""Mach number as function of post-shock Mach number.

@@ -154,7 +154,6 @@ C     MAIN LOOP
       END
 C
       SUBROUTINE A_ACRIT(Y,M,G,N)
-C     (2/(G+1)*(1+(G-1)/2*M^2))^((G+1)/(G-1)/2)/M
 C     ARGUMENTS
       INTEGER N
       REAL*8 G
@@ -177,7 +176,8 @@ C     MAIN LOOP
       DO I=1,N
         MSQ = M(I)*M(I)
         TO_T = 1.0D0 + GM1_2 * MSQ
-        Y(I) = ((TO_T/GP1_2)**GP1_GM1_2)/MSQ*(-1.0D0/MSQ+GP1_2/TO_T)
+        ! Y(I) = ((TO_T/GP1_2)**GP1_GM1_2)/MSQ*(-1.0D0/MSQ+GP1_2/TO_T)
+        Y(I) = ((TO_T/GP1_2)**GP1_GM1_2)/TO_T*(1.0D0 - 1.0D0/MSQ)
       ENDDO
       END
 C

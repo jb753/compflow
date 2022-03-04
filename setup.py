@@ -12,13 +12,13 @@ with open("README.md", "r") as fh:
 
 setup(
     name="compflow",
-    version="0.3.0",
+    version="0.4.0",
     author="James Brind",
     author_email="jb753@cam.ac.uk",
-    description="Compressible aerodynamics library.",
+    description="A library of fast compressible flow relations.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://jb753.user.srcf.net/compflow-docs/index.html",
+    url="https://jamesbrind.uk/compflow-docs/index.html",
     packages=setuptools.find_packages(),
     install_requires=[
         "numpy",

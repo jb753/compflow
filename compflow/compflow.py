@@ -21,7 +21,7 @@ from .fortran import *
 cache = {}
 
 
-def generate_lookup(var, ga, atol=1e-6):
+def _generate_lookup(var, ga, atol=1e-6):
     """Generate a lookup table for faster inversions to Mach number.
 
     Args:
@@ -105,7 +105,7 @@ def to_Ma(var, var_in, ga, supersonic=False, use_lookup=False):
         if ga not in cache:
             cache[ga] = {}
         if var not in cache[ga]:
-            cache[ga][var] = generate_lookup(var, ga)
+            cache[ga][var] = _generate_lookup(var, ga)
         try:
             Ma = cache[ga][var](var_in)
             return Ma
@@ -113,7 +113,7 @@ def to_Ma(var, var_in, ga, supersonic=False, use_lookup=False):
         except ValueError:
             pass
 
-    # Check if an explicit inversion exists
+    # Choose variable
     if var == 'To_T':
         Ma_out = Ma_from_To_T(var_in, ga)
 
@@ -138,13 +138,11 @@ def to_Ma(var, var_in, ga, supersonic=False, use_lookup=False):
     elif var == 'Mash':
         Ma_out = Ma_from_Mash(var_in, ga)
 
-    # Shock pressure ratio
     elif var == 'Posh_Po':
         Ma_out = Ma_from_Posh_Po(var_in, ga)
 
     else:
         raise ValueError('Bad flow quantity requested.')
-
 
     return Ma_out
 
@@ -198,7 +196,7 @@ def from_Ma(var, Ma_in, ga):
 
 
 def derivative_from_Ma(var, Ma_in, ga):
-    """Evaluate compressible flow quantity derivatives as explict functions """
+    """Evaluate quantity derivatives as explicit functions of Mach number."""
 
     Ma = np.asarray(Ma_in)
 

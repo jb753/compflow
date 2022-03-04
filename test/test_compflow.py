@@ -31,7 +31,7 @@ var_test_sup = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo',
                 'mcpTo_AP', 'Mash', 'Posh_Po']
 
 # Number of times to repeat the number crunching
-Nrep = 100
+Nrep = 1
 
 #
 # Begin test functions
@@ -123,7 +123,7 @@ def test_inverse_sup():
 
 def test_derivative():
     """Check explicit derivative against a numerical approximation."""
-    for v in var_test_sup:
+    for v in var_test_sup + ['A_Acrit']:
         Ma = np.linspace(0., 3.)
 
         # Explicit
@@ -133,10 +133,16 @@ def test_derivative():
         Y = cf.from_Ma(v, Ma, ga)
         dYdMa_numerical = np.gradient(Y, Ma)
 
+        # Replace infinities with an arbitrary big number
+        big = 1e9
+        for dY in (dYdMa, dYdMa_numerical):
+            dY[np.isinf(dY)] = big;
+
         # Check discrepancy
-        err = dYdMa / dYdMa_numerical - 1.
+        err = (dYdMa - dYdMa_numerical)/ dYdMa_numerical
         print(v)
         assert np.max(err[np.isfinite(err)]) < 0.05
+
 
 def test_shape():
     """Input Mach shape should be same as output shape."""
@@ -158,5 +164,25 @@ def test_shape():
         for Mi in [M1, M12, M12.T, M2, M3]:
             print(Mi.shape)
             assert cf.from_Ma( v, Mi, ga).shape == Mi.shape
+
+
+def test_A_Acrit_from_Ma():
+    """We do not have Data Book values for A_Acrit, so work them out."""
+    Ma = np.linspace(0.001,2.,21)
+    A_Acrit_1 = cf.from_Ma('mcpTo_APo',1.,ga)/cf.from_Ma('mcpTo_APo', Ma, ga)
+    A_Acrit_2 = cf.from_Ma('A_Acrit', Ma, ga)
+    assert np.all(np.isclose(A_Acrit_1,A_Acrit_2))
+
+
+def test_A_Acrit_to_Ma_sub():
+    """We do not have Data Book values for A_Acrit, so work them out."""
+    Ma_1 = np.linspace(0.1,1.,3)
+    A_Acrit = cf.from_Ma('A_Acrit', Ma_1, ga)
+    Ma_2 = cf.to_Ma('A_Acrit', A_Acrit, ga, supersonic=True)
+    print(Ma_1)
+    print(Ma_2)
+    assert np.all(np.isclose(Ma_1,Ma_2))
+
+
 
 
