@@ -19,7 +19,7 @@ html:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	find _build/html/ -name '*.html' \
 		| xargs sed -i \
-		's/James Brind/<a href="https:\/\/jb753.user.srcf.net">James Brind<\/a>/'
+		's/James Brind/<a href="https:\/\/jamesbrind.uk">James Brind<\/a>/'
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
