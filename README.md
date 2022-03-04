@@ -5,7 +5,7 @@ number and other non-dimensional groups in compressible flows. By using a
 NumPy--Fortran interface, the code is vectorised and lightning-fast, yielding a
 speed-up of up to two orders of magnitude.
 
-[Full documentation](https://jb753.user.srcf.net/compflow-docs/index.html) is available online. 
+[Full documentation](https://jamesbrind.uk/compflow-docs/index.html) is available online. 
 
 ![Compressible flow quantities](sample/sample.png)
 
@@ -54,9 +54,9 @@ iterative solution for Mach number is required,
 
 The names and symbols of non-dimensional quantities are fairly
 self-explanatory, but a full list is given in the
-[Nomenclature](https://jb753.user.srcf.net/compflow-docs/api.html#nomenclature).
+[Nomenclature](https://jamesbrind.uk/compflow-docs/api.html#nomenclature).
 All functions and the equations used for the calculations are documented in the
-[API](https://jb753.user.srcf.net/compflow-docs/api.html).
+[API](https://jamesbrind.uk/compflow-docs/api.html).
 
 Numpy arrays are also accepted as inputs,
 
@@ -85,7 +85,6 @@ returned,
    array([0.28442265,        nan])
    >>> compflow.Ma_from_mcpTo_APo(capacity, ga, sup=True)
    array([2.27028708,        nan])
-
 ```
 
 ## TODO
@@ -93,12 +92,10 @@ returned,
 * Make tolerance on Mach number for iterative inversions modifiable via a
   module-level attribute. 
 * Refactor and properly document the lookup table functionality.
-* Add flag to solve for supersonic branch of A/A_crit.
-* Add test for invalid values of Mach number.
-* Add test for invalid values of inversion quantities.
-* Add test for compatibility of output shape.
-* Sort out packaging so that NumPy gets installed automatically.
+* Note in the docs that we do not validate input data --- no error is thrown for negative Mach, but probably there will be NaNs
+* Write and test an optional validation function, to add validation now would be  breaking change, and sometimes we don't want it.
+* Sort out packaging so that NumPy gets installed automatically (distutils due to be deprecated?).
 
 James Brind
-Feb 2021
+Feb 2022
 
