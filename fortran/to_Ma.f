@@ -277,6 +277,7 @@ C     ITERATION VARS
       REAL*8 F
       REAL*8 DF
       REAL*8 TO_T
+      REAL*8 REL_FAC
 C     CONSTANTS
       REAL*8 NAN
       REAL*8 TOL
@@ -299,15 +300,27 @@ C     MAIN LOOP
         ENDIF
         K = 0
         ERR = HUGE(ERR)
-        DO WHILE (ERR.gt.TOL.and.K.lt.100)
+        DO WHILE (ERR.gt.TOL.and.K.lt.100000)
 
         K = K + 1
 
         TO_T = 1.0D0 + GM1_2 * MA*MA 
         F = ((TO_T/GP1_2)**GP1_GM1_2)/MA
-        DF = F * MA * (-1.0D0/MA/MA + GP1_2 /TO_T)
+        DF = F * (MA - 1.0D0/MA) / TO_T
 
-        MANEW = MA - (F-X(I)) / DF
+        ! TO COPE WITH STEEP SLOPES AT LOW MA, REDUCE RELAXATION FACTOR
+        IF (MA.lt.0.1D0) THEN
+            REL_FAC = 0.01D0
+        ELSE
+            REL_FAC = 0.1D0
+        ENDIF
+
+        ! CATCH NEGATIVE MA AND RESET
+        IF (MA.lt.0.0D0) THEN
+            MA = 1.0D-3
+        ENDIF
+
+        MANEW = MA - (F-X(I)) / DF * REL_FAC
         ERR = ABS(MANEW - MA)
         MA = MANEW
         ENDDO

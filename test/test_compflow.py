@@ -175,13 +175,25 @@ def test_A_Acrit_from_Ma():
 
 
 def test_A_Acrit_to_Ma_sub():
-    """We do not have Data Book values for A_Acrit, so work them out."""
-    Ma_1 = np.linspace(0.1,1.,3)
+    """Inverting subsonic values of A_Acrit."""
+    Ma_1 = np.linspace(0.01,1.)
+    A_Acrit = cf.from_Ma('A_Acrit', Ma_1, ga)
+    Ma_2 = cf.to_Ma('A_Acrit', A_Acrit, ga, supersonic=False)
+    dM = Ma_1-Ma_2
+    print(dM.max())
+    assert np.all(dM<1e-4)
+
+def test_A_Acrit_to_Ma_sup():
+    """Inverting supersonic values of A_Acrit."""
+    Ma_1 = np.linspace(1.,5.)
     A_Acrit = cf.from_Ma('A_Acrit', Ma_1, ga)
     Ma_2 = cf.to_Ma('A_Acrit', A_Acrit, ga, supersonic=True)
-    print(Ma_1)
-    print(Ma_2)
-    assert np.all(np.isclose(Ma_1,Ma_2))
+    dM = Ma_1-Ma_2
+    print(dM.max())
+    assert np.all(dM<1e-4)
+
+
+
 
 
 
