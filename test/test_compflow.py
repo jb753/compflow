@@ -48,6 +48,7 @@ def test_Ma_0():
             assert np.isclose( cf.to_Ma( v, np.atleast_1d(Y0[v]), ga), 0.0,
                                 atol=1e-7, equal_nan=True)
 
+
 def test_Ma_inf():
     """Check expected values for Ma = i."""
     val_inf = np.array([np.inf, np.inf, np.inf, np.sqrt(2.), 0.,
@@ -56,6 +57,7 @@ def test_Ma_inf():
     for v in var_test_sup:
         print(v)
         assert np.isclose( cf.from_Ma( v, np.atleast_1d(np.inf), ga), Y0[v], atol=1e-7)
+
 
 def test_Ma_1():
     """Check inversion for values near Ma = 1."""
@@ -69,6 +71,7 @@ def test_Ma_1():
         err = Ma_fw-Ma_bk
         print(v, err)
         assert np.all(np.abs(err[~np.isnan(Ma_bk)])<1e-5)
+
 
 def test_explicit_sub():
     """Compare quantity values to CUED Data Book, subsonic."""
@@ -134,3 +137,26 @@ def test_derivative():
         err = dYdMa / dYdMa_numerical - 1.
         print(v)
         assert np.max(err[np.isfinite(err)]) < 0.05
+
+def test_shape():
+    """Input Mach shape should be same as output shape."""
+
+    # Define Mach arrays of different shapes
+    M0 = 0.3
+    M1 = np.linspace(0.3,0.6,11)
+    M12 = np.atleast_2d(M1)
+    M2 = np.column_stack((M1,M1))
+    M3 = np.stack((M2,M2))
+
+    # Loop over quantities
+    for v in var_test_sup:
+
+        # Scalar
+        assert np.isscalar(cf.from_Ma( v, M0, ga))
+
+        # Loop over different arrays and compare shapes
+        for Mi in [M1, M12, M12.T, M2, M3]:
+            print(Mi.shape)
+            assert cf.from_Ma( v, Mi, ga).shape == Mi.shape
+
+
