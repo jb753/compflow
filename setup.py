@@ -15,10 +15,10 @@ setup(
     version="0.4.0",
     author="James Brind",
     author_email="jb753@cam.ac.uk",
-    description="A library of fast compressible flow relations.",
+    description="Fast compressible flow tables for aerodynamic calculations in Python.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://jamesbrind.uk/compflow-docs/index.html",
+    url="https://jamesbrind.uk/compflow-docs/",
     packages=setuptools.find_packages(),
     install_requires=[
         "numpy",

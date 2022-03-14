@@ -2,14 +2,6 @@
 
 This module contains functions to convert back and forth between Mach number
 and various other non-dimensional flow quantities.
-
-Two interfaces are available. `to_Ma` and `from_Ma` take a string argument that
-selects the flow quantity to use, and perform some sanity checks on input data.
-There are also lower-level functions which assume the input data is a sensible
-numpy array and require no branching, the idea being that these are slightly
-faster.
-
-JB June 2020
 """
 
 import numpy as np
@@ -21,7 +13,7 @@ from .fortran import *
 cache = {}
 
 
-def _generate_lookup(var, ga, atol=1e-6):
+def _generate_lookup(var, ga, atol=1e-7):
     """Generate a lookup table for faster inversions to Mach number.
 
     Args:
@@ -75,43 +67,26 @@ def _generate_lookup(var, ga, atol=1e-6):
         x = np.insert(x,ierr+1,xm[ierr])
         y = np.insert(y,ierr+1,ym[ierr])
 
-    return f
+    # Add shape restore to the spline object
+    def fs(Ma):
+        if np.shape(Ma) == ():
+            return np.asscalar(f(Ma))
+        else:
+            return f(Ma)
+
+    return fs
+
+def _cache_lookup(var, ga):
+    """Fetch a lookup table from cache, create if needed."""
+    if ga not in cache:
+        cache[ga] = {}
+    if var not in cache[ga]:
+        cache[ga][var] = _generate_lookup(var, ga)
+    return cache[ga][var]
 
 
-def get_invalid(var, Y, ga):
-    """Return indices for non-physical values."""
-
-    if var == 'mcpTo_APo':
-        ich = Y > mcpTo_APo_from_Ma(1., ga)
-    elif var in ['Po_P', 'To_T', 'rhoo_rho', 'A_Acrit']:
-        ich = Y < 1.
-    elif var in ['Posh_Po', 'Mash']:
-        ich = Y > 1.
-    elif var in ['V_cpTo']:
-        ich = Y > np.sqrt(2)
-    elif var in ['Mash']:
-        ich = Y < np.sqrt((ga - 1.)/ 2. / ga)
-    else:
-        ich = np.full(np.shape(Y), False)
-
-    return ich
-
-def to_Ma(var, var_in, ga, supersonic=False, use_lookup=False):
-    """Invert the Mach number relations by solving iteratively."""
-
-    # Check if a lookup table exists
-    if use_lookup and not supersonic \
-        and not var in ['To_T', 'Po_P', 'Mash', 'Posh_Po', 'rhoo_rho', 'V_cpTo']:
-        if ga not in cache:
-            cache[ga] = {}
-        if var not in cache[ga]:
-            cache[ga][var] = _generate_lookup(var, ga)
-        try:
-            Ma = cache[ga][var](var_in)
-            return Ma
-
-        except ValueError:
-            pass
+def to_Ma(var, var_in, ga, supersonic=False):
+    """Invert the Mach number relations, solving iteratively if needed."""
 
     # Choose variable
     if var == 'To_T':
@@ -234,3 +209,25 @@ def derivative_from_Ma(var, Ma_in, ga):
 
     # Throw an error if we don't recognise the requested variable
     raise ValueError('Invalid quantity requested: {}.'.format(var))
+
+
+def lookup_mcpTo_APo(mcpTo_APo, ga):
+    return _cache_lookup('mcpTo_APo', ga)(mcpTo_APo)
+
+
+
+def lookup_mcpTo_AP(mcpTo_AP, ga):
+    return _cache_lookup('mcpTo_AP', ga)(mcpTo_AP)
+
+
+def lookup_A_Acrit(A_Acrit, ga):
+    return _cache_lookup('A_Acrit', ga)(A_Acrit)
+
+
+def lookup_Posh_Po(Posh_Po, ga):
+    return _cache_lookup('Posh_Po', ga)(Posh_Po)
+
+
+def lookup_Mash(Mash, ga):
+    return _cache_lookup('Mash', ga)(Mash)
+

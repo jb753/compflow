@@ -11,6 +11,13 @@ reverse operation of finding the Mach number that corresponds to the value of
 another quantity; and third, evaluation of derivatives with respect to Mach
 number.
 
+.. note::
+
+    The library makes no attempt to validate input data, in the interests of
+    speed. So, for example, feeding any function a negative Mach number will
+    silently produce bogus results. If this is not what you want, validate your
+    own data before calling the library.
+
 .. _nomen:
 
 Nomenclature
@@ -46,6 +53,7 @@ The code deals in the following non-dimensional groups:
 | Shock stagnation pressure ratio | :math:`\dfrac{p_{0\mathrm{sh}}}{p_0}`      | `Posh_Po`     |
 +---------------------------------+--------------------------------------------+---------------+
 
+   
 The following dimensional quantities are used in the definitions:
 
 +-----------------+---------------------------------------------+
