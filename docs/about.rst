@@ -4,9 +4,9 @@ About
 Motivation
 **********
 
-compflow was written because the existing options did not meet the author's
-needs. In particular, for internal flow problems, a very common operation is
-solving for Mach number given a normalised mass flow
+compflow was written because the existing options did not meet `the author's
+<https://jamesbrind.uk>`_ needs. In particular, for internal flow problems, a
+very common operation is solving for Mach number given a normalised mass flow
 :math:`\dot{m}\sqrt{c_pT_0}/Ap_0` (also known as flow function or capacity).
 Surprisingly, although there are many similar aerodynamics libraries available,
 none had this feature.

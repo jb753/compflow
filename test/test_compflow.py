@@ -200,59 +200,6 @@ def test_lookup_mcpTo_APo():
     mcpTo_APo = cf.mcpTo_APo_from_Ma(Ma, ga)
     # Evaluate lookup
     Ma_out = cf.lookup_mcpTo_APo(mcpTo_APo, ga)
-    assert np.all(np.isclose(Ma, Ma_out))
-
-
-def test_lookup_mcpTo_AP():
-    """Compare lookup table accuracy to iterative inversion."""
-    # Evaluate forward
-    Ma = np.linspace(0.,1.)
-    mcpTo_AP = cf.mcpTo_AP_from_Ma(Ma, ga)
-    # Evaluate lookup
-    Ma_out = cf.lookup_mcpTo_AP(mcpTo_AP, ga)
-    assert np.all(np.isclose(Ma, Ma_out))
-
-
-def test_lookup_A_Acrit():
-    """Compare lookup table accuracy to iterative inversion."""
-    # Evaluate forward
-    Ma = np.linspace(0.01,1.)
-    A_Acrit = cf.A_Acrit_from_Ma(Ma, ga)
-    # Evaluate lookup
-    Ma_out = cf.lookup_A_Acrit(A_Acrit, ga)
-    assert np.all(np.isclose(Ma, Ma_out))
-
-
-
-def test_lookup_Mash():
-    """Compare lookup table accuracy to iterative inversion."""
-    # Evaluate forward
-    Ma = np.linspace(1.0,2.)
-    Mash = cf.Mash_from_Ma(Ma, ga)
-    # Evaluate lookup
-    Ma_out = cf.lookup_Mash(Mash, ga)
-    assert np.all(np.isclose(Ma, Ma_out))
-
-
-def test_lookup_Posh_Po():
-    """Compare lookup table accuracy to iterative inversion."""
-    # Evaluate forward
-    Ma = np.linspace(1.0,2.)
-    Posh_Po = cf.Posh_Po_from_Ma(Ma, ga)
-    # Evaluate lookup
-    Ma_out = cf.lookup_Posh_Po(Posh_Po, ga)
-    assert np.all(np.isclose(Ma, Ma_out))
-
-
-
-
-
-
-
-
-
-
-
-
+    assert np.all(np.isclose(Ma, Ma_out,atol=1e-6))
 
 

@@ -80,7 +80,7 @@ if __name__ == '__main__':
     print('Benchmarking inversion...')
 
     # Initialise lookup table
-    cf.to_Ma('mcpTo_APo',0.4,ga,use_lookup=True)
+    cf.lookup_mcpTo_APo(0.4,ga)
 
     # Loop over array sizes
     dt_native = []
@@ -100,7 +100,7 @@ if __name__ == '__main__':
             'from __main__ import X,ga,cf'
         )
         T_lookup = timeit.Timer(
-            'cf.to_Ma("mcpTo_APo",X,ga,use_lookup=True)',
+            'cf.lookup_mcpTo_APo(X,ga)',
             'from __main__ import X,ga,cf'
         )
 

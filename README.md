@@ -89,8 +89,7 @@ returned,
 
 ## TODO
 
-* Refactor and properly document the lookup table functionality.
 * Sort out packaging so that NumPy gets installed automatically (distutils due to be deprecated?).
 
 James Brind
-Feb 2022
+Mar 2022

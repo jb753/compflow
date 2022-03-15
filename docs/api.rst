@@ -5,18 +5,18 @@ API reference
 
 This page defines the application--program interface for the compflow module.
 The nomenclature section sets out the names and symbols for the quantites
-calculated by the code, then the functions are listed in three categories.
+calculated by the code, then the main functions are listed in three categories.
 First, evaluation of a non-dimensional group given Mach number; second, the
 reverse operation of finding the Mach number that corresponds to the value of
 another quantity; and third, evaluation of derivatives with respect to Mach
-number.
+number. This page concludes with a description of the lookup table function.
 
 .. note::
 
-    The library makes no attempt to validate input data, in the interests of
-    speed. So, for example, feeding any function a negative Mach number will
-    silently produce bogus results. If this is not what you want, validate your
-    own data before calling the library.
+    The library makes minimal attempts to validate input data, in the interests
+    of speed. So, for example, feeding most functions a negative Mach number
+    will silently produce bogus results. If this is not what you want, validate
+    your own data before calling the library.
 
 .. _nomen:
 
@@ -162,3 +162,7 @@ Derivatives with respect to Mach number
 .. autofunction:: compflow.der_Mash_from_Ma
 .. autofunction:: compflow.der_Posh_Po_from_Ma
 
+Lookup normalised mass flow
+***************************
+
+.. autofunction:: compflow.lookup_mcpTo_APo

@@ -354,7 +354,7 @@ def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
 
     For each :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`, there are two possible
     values of :math:`\Ma`. Return the subsonic solution with :math:`\Ma\le 1`
-    by default; the supersonic solution with :math:`\Ma>`` is retrived by
+    by default; the supersonic solution with :math:`\Ma>1`` is retrived by
     setting the parameter `sup=True`.
 
     Returns `NaN` if input data is not physically possible, where

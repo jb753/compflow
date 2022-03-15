@@ -13,7 +13,7 @@ from .fortran import *
 cache = {}
 
 
-def _generate_lookup(var, ga, atol=1e-7):
+def _generate_lookup(var, ga, atol):
     """Generate a lookup table for faster inversions to Mach number.
 
     Args:
@@ -76,12 +76,12 @@ def _generate_lookup(var, ga, atol=1e-7):
 
     return fs
 
-def _cache_lookup(var, ga):
+def _cache_lookup(var, ga, atol):
     """Fetch a lookup table from cache, create if needed."""
     if ga not in cache:
         cache[ga] = {}
     if var not in cache[ga]:
-        cache[ga][var] = _generate_lookup(var, ga)
+        cache[ga][var] = _generate_lookup(var, ga, atol)
     return cache[ga][var]
 
 
@@ -211,23 +211,38 @@ def derivative_from_Ma(var, Ma_in, ga):
     raise ValueError('Invalid quantity requested: {}.'.format(var))
 
 
-def lookup_mcpTo_APo(mcpTo_APo, ga):
-    return _cache_lookup('mcpTo_APo', ga)(mcpTo_APo)
+def lookup_mcpTo_APo(mcpTo_APo, ga, atol=1e-6):
+    r"""Invert normalised mass flow relation with lookup table.
 
+    This function is equivalent to :func:`compflow.Ma_from_mcpTo_APo` for
+    subsonic inputs, but uses a lookup table rather than iteratively solving.
+    The lookup table is :ref:`faster <bench>` for large amounts of input data,
+    more than about 100 elements.
 
+    The first call of this function with a given value of gamma will
+    automatically prepare the table, distributing sampling points as required
+    to yield a uniform small error in Mach number. The table is then cached for
+    future calls.
 
-def lookup_mcpTo_AP(mcpTo_AP, ga):
-    return _cache_lookup('mcpTo_AP', ga)(mcpTo_AP)
+    Parameters
+    ----------
+    mcpTo_APo : array
+        Normalised mass flow, :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+    atol : float
+        Tolerance on error in inverted :math:`\Ma` values.
 
+    Returns
+    -------
+    Ma : array
+        Mach number, :math:`\Ma`.
 
-def lookup_A_Acrit(A_Acrit, ga):
-    return _cache_lookup('A_Acrit', ga)(A_Acrit)
+    Raises
+    ------
+    ValueError
+        If Mach number is outside the table range of :math:`0\le\Ma\le 1`.
 
-
-def lookup_Posh_Po(Posh_Po, ga):
-    return _cache_lookup('Posh_Po', ga)(Posh_Po)
-
-
-def lookup_Mash(Mash, ga):
-    return _cache_lookup('Mash', ga)(Mash)
+    """
+    return _cache_lookup('mcpTo_APo', ga, atol)(mcpTo_APo)
 
