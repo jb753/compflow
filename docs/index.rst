@@ -12,6 +12,7 @@ speed-up of up to :ref:`two orders of magnitude <bench>`.
    about
    usage
    api
+   GitHub <https://github.com/jb753/compflow>
 
 .. image:: _static/sample.png
    :align: center
