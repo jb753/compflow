@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../'))
 project = 'compflow'
 copyright = '2022, James Brind'
 author = 'James Brind'
-version = '0.4.0'
+version = '0.5.0'
 
 
 # -- General configuration ---------------------------------------------------
