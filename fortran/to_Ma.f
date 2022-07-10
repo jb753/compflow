@@ -104,6 +104,78 @@ C     MAIN LOOP
       ENDDO
       END
 C
+      SUBROUTINE F_MCPTO(M,X,G,SUP,N)
+C     NUMERIC INVERSION USING NEWTON'S METHOD
+C     ARGUMENTS
+      INTEGER N
+      REAL*8 G
+      REAL*8 M(N)
+      REAL*8 X(N)
+      LOGICAL SUP
+Cf2py optional :: SUP = .FALSE.
+Cf2py intent(in) sup
+Cf2py intent(in) x
+Cf2py intent(in) g
+Cf2py intent(out) m
+Cf2py intent(hide) n
+C     INTERMEDIATE VARS
+      REAL*8 SQ_GM1_G
+      REAL*8 GM1_2
+      REAL*8 C
+C     ITERATION VARS
+      INTEGER K
+      REAL*8 MA
+      REAL*8 SQ_TO_T
+      REAL*8 MANEW
+      REAL*8 ERR
+      REAL*8 F
+      REAL*8 DF
+C     CONSTANTS
+      REAL*8 NAN
+      REAL*8 TOL
+C     CALC GAMMA VARIANTS
+      GM1_2 = (G-1.0D0)/2.0D0
+      SQ_GM1_G = SQRT(G-1.0D0)/G
+C     INITIALISE CONSTANTS
+      NAN = 0.0D0
+      NAN = 0.0D0/NAN
+      TOL = 1.0D-6
+C     MAIN LOOP
+      DO I=1,N
+C         INITIAL GUESS
+          IF (SUP) THEN
+              MA = 1.5D0
+          ELSE
+              MA = 0.5D0
+          ENDIF
+          ERR = HUGE(ERR)
+          K = 0
+C         UP TO 100 ITERATIONS UNTIL TOLERANCE MET 
+          DO WHILE (ERR.gt.TOL.and.K.lt.100)
+          K = K + 1
+C         USE NEWTON'S METHOD FOR NEW GUESS OF MA
+          SQ_TO_T = SQRT(1.0D0 + GM1_2 * MA * MA )
+          F = SQ_GM1_G * (1.0D0/MA + G*MA) / SQ_TO_T
+          C = SQ_TO_T*SQ_TO_T*SQ_TO_T
+          DF = SQ_GM1_G * (MA*MA - 1.0D0) / MA / MA / C 
+          MANEW = MA - (F-X(I)) / DF * 0.1D0
+C         IF WE CROSS ZERO, THEN SHRINK MA GEOMETRICALLY
+          IF (MANEW.lt.0.0D0) THEN
+              MANEW = 0.5D0 * MA
+          ENDIF
+C         GET ERROR AND UPDATE MA
+          ERR = ABS(MANEW - MA)
+          MA = MANEW
+          ENDDO
+C         RETURN NAN IF NOT CONVERGED
+          IF (ERR.lt.TOL) THEN
+              M(I) = MA
+          ELSE
+              M(I) = NAN
+          ENDIF
+      ENDDO
+      END
+C
       SUBROUTINE MCPTO_AP(M,X,G,N)
 C     NUMERIC INVERSION USING NEWTON'S METHOD
 C     ARGUMENTS

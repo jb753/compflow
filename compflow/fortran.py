@@ -127,6 +127,31 @@ def mcpTo_APo_from_Ma(Ma,ga):
     """
     return _restore_shape(fort_from_Ma.mcpto_apo, (Ma,ga))
 
+def F_mcpTo_from_Ma(Ma,ga):
+    r"""Impulse function as a function of Mach number.
+
+    .. math::
+
+        \frac{F}{\dot{m}\sqrt{c_p T_0}} =
+        \frac{\sqrt{\gamma -1}}{\gamma}\,
+        \frac{1 + \gamma \Ma^2}{\Ma}
+        \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)
+        ^{-\tfrac{1}{2}}
+
+    Parameters
+    ----------
+    Ma : array
+        Mach number, :math:`\Ma`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+
+    Returns
+    -------
+    F_mcpTo : array
+        Impulse function, :math:`{F/\dot{m}\sqrt{c_p T_0}}`.
+    """
+    return _restore_shape(fort_from_Ma.f_mcpto, (Ma,ga))
+
 def mcpTo_AP_from_Ma(Ma,ga):
     r"""Static normalised mass flow as function of Mach number.
 
@@ -378,6 +403,47 @@ def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
         Mach number, :math:`\Ma`.
     """
     return _restore_shape(fort_to_Ma.mcpto_apo, (mcpTo_APo, ga, sup))
+
+def Ma_from_F_mcpTo(F_mcpTo, ga, sup=False):
+    r"""Mach number as function of normalised mass flow.
+
+    The inverse of :func:`compflow.F_mcpTo_from_Ma`, which at a given value
+    of :math:`F/{\dot{m}\sqrt{c_p T_0}}` must be solved iteratively for
+    :math:`\Ma` using Newton's method.
+
+    .. math::
+
+        \frac{\dot{m}\sqrt{c_p T_0}}{A p_0} =
+        \frac{\gamma}{\sqrt{\gamma -1}}\, \Ma
+        \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)
+		^{-\tfrac{1}{2}\tfrac{\gamma + 1}{\gamma - 1}}
+
+    For each :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`, there are two possible
+    values of :math:`\Ma`. Return the subsonic solution with :math:`\Ma\le 1`
+    by default; the supersonic solution with :math:`\Ma>1`` is retrived by
+    setting the parameter `sup=True`.
+
+    Returns `NaN` if input data is not physically possible, where
+    :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0} < 0`. The normalised mass flow
+    reaches a maximum at the sonic velocity :math:`\Ma=1`. Input data above the
+    maximum value correspond to choking --- also return `NaN` in this case.
+
+    Parameters
+    ----------
+    F_mcpTo : array
+        Normalised mass flow, :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+    sup : bool, default False
+        If true, return the supersonic solution, otherwise the subsonic
+        solution.
+
+    Returns
+    -------
+    Ma : array
+        Mach number, :math:`\Ma`.
+    """
+    return _restore_shape(fort_to_Ma.f_mcpto, (F_mcpTo, ga, sup))
 
 def Ma_from_mcpTo_AP(mcpTo_AP, ga):
     r"""Mach number as function of static normalised mass flow.
@@ -665,6 +731,33 @@ def der_mcpTo_AP_from_Ma(Ma, ga):
         Derivative of static pressure variant of normalised mass flow, :math:`\DMa({\dot{m}\sqrt{c_p T_0}}/{A p})`.
     """
     return _restore_shape(fort_der_from_Ma.mcpto_ap, (Ma,ga))
+
+def der_F_mcpTo_from_Ma(Ma, ga):
+    r"""Derivative of impulse function by Mach number.
+
+    The derivative of :func:`compflow.F_mcpTo_from_Ma` with respect to Mach
+    number.
+
+    .. math::
+
+        \DMa\left(\frac{\dot{m}\sqrt{c_p T_0}}{A p} \right)=
+        \frac{\gamma}{\sqrt{\gamma -1}}
+        \Big(1 + (\gamma - 1) \Ma^2 \Big)
+        \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)^{-\tfrac{1}{2}}
+
+    Parameters
+    ----------
+    Ma : array
+        Mach number, :math:`\Ma`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+
+    Returns
+    -------
+    der_F_mcpTo : array
+        Derivative of impulse function, :math:`\DMa(F/{\dot{m}\sqrt{c_p T_0}})`.
+    """
+    return _restore_shape(fort_der_from_Ma.f_mcpto, (Ma,ga))
 
 def der_A_Acrit_from_Ma(Ma, ga):
     r"""Derivative of choking area ratio by Mach number.

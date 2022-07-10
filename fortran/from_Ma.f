@@ -150,6 +150,37 @@ C     MAIN LOOP
       ENDDO
       END
 C
+      SUBROUTINE F_MCPTO(Y,M,G,N)
+C     SQRT(G-1)/G/M*(1+G*M^2)/SQRT(1+(G-1)/2*M^2)
+C     ARGUMENTS
+      INTEGER N
+      REAL*8 G
+      REAL*8 M(N)
+      REAL*8 Y(N)
+Cf2py intent(in) m
+Cf2py intent(in) g
+Cf2py intent(out) y
+Cf2py intent(hide) n
+C     INTERMEDIATE VARS
+      REAL*8 GM1_2
+      REAL*8 SQ_GM1_G
+      REAL*8 C
+      REAL*8 INF
+      GM1_2 = (G-1.0D0)/2.0D0
+      SQ_GM1_G = SQRT(G-1.0D0)/G
+C     MAIN LOOP
+      DO I=1,N
+        IF (M(I).eq.0.0D0) THEN
+            INF = 0.0D0
+            INF = 1.0D0/INF
+            Y(I) = INF
+        ELSE
+            C = SQRT(1.0D0/M(I)/M(I)+GM1_2)
+            Y(I)=SQ_GM1_G*(1.0D0/M(I)/M(I)+G)/C
+        ENDIF
+      ENDDO
+      END
+C
       SUBROUTINE A_ACRIT(Y,M,G,N)
 C     (2/(G+1)*(1+(G-1)/2*M^2))^((G+1)/(G-1)/2)/M
 C     ARGUMENTS

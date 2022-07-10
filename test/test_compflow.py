@@ -20,15 +20,19 @@ csv_sup = TEST_DIR + '/cued_data_book_supersonic.csv'
 dat_sup = {var_sup[i]: np.loadtxt(csv_sup).reshape((-1, 17))[3:, i]
            for i in range(len(var_sup))}
 
+# The impulse value of F_mcpTo has been rounded down to 4dp beyond the limit
+# So correct this manually
+dat_sub['F_mcpTo'][dat_sub['Ma']==1.0] = 0.989743318610787
+
 # Take reciprocals of verification data
 for vi in ['To_T', 'Po_P', 'rhoo_rho']:
     dat_sub[vi] = 1. / dat_sub[vi]
     dat_sup[vi] = 1. / dat_sup[vi]
 
 # List variables which the module implements
-var_test_sub = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP']
+var_test_sub = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP','F_mcpTo']
 var_test_sup = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo',
-                'mcpTo_AP', 'Mash', 'Posh_Po']
+                'mcpTo_AP', 'Mash', 'Posh_Po', 'F_mcpTo']
 
 # Number of times to repeat the number crunching
 Nrep = 1
@@ -38,7 +42,7 @@ Nrep = 1
 
 def test_Ma_0():
     """Check expected values for Ma = 0."""
-    val0 = np.array([1., 1., 1., 0., 0., 0., np.nan, np.nan])
+    val0 = np.array([1., 1., 1., 0., 0., 0., np.nan, np.nan, np.inf])
     Y0 = {var_test_sup[i]: val0[i] for i in range(len(var_test_sup))}
     for v in var_test_sup:
         print(v, Y0[v], cf.from_Ma( v, np.atleast_1d(0.), ga))
@@ -52,10 +56,11 @@ def test_Ma_0():
 def test_Ma_inf():
     """Check expected values for Ma = i."""
     val_inf = np.array([np.inf, np.inf, np.inf, np.sqrt(2.), 0.,
-                        np.inf, np.sqrt((ga - 1.)/ 2. / ga), 0.])
+                        np.inf, np.sqrt((ga - 1.)/ 2. / ga), 0., np.sqrt(2.)])
     Y0 = {var_test_sup[i]: val_inf[i] for i in range(len(var_test_sup))}
     for v in var_test_sup:
         print(v)
+        print(Y0[v], cf.from_Ma( v, np.atleast_1d(np.inf), ga))
         assert np.isclose( cf.from_Ma( v, np.atleast_1d(np.inf), ga), Y0[v], atol=1e-7)
 
 
@@ -66,7 +71,9 @@ def test_Ma_1():
     for v in var_test_sup:
         Y_fw = cf.from_Ma( v, Ma_fw, ga)
         Ma_bk = cf.to_Ma( v, Y_fw, ga)
-        if v in ['mcpTo_APo','A_Acrit']:
+        print(Ma_fw)
+        print(Ma_bk)
+        if v in ['mcpTo_APo','A_Acrit','F_mcpTo']:
             Ma_bk[-1] = cf.to_Ma( v, Y_fw[-1], ga, True)
         err = Ma_fw-Ma_bk
         print(v, err)
@@ -105,8 +112,8 @@ def test_inverse_sub():
         err_sub = np.abs(X - dat_sub['Ma'])
         imax = np.argmax(err_sub)
         assert err_sub[imax] <= 0.01, \
-            "{0}={1} =>  Ma={2} with error={3}".format(
-                v, dat_sub[v][imax], X[imax], err_sub[imax])
+            "{0}={1} =>  Ma={2},{3} with error={4}".format(
+                v, dat_sub[v][imax], dat_sub['Ma'][imax], X[imax], err_sub[imax])
 
 
 def test_inverse_sup():
@@ -117,14 +124,14 @@ def test_inverse_sup():
         err_sup = np.abs(X - dat_sup['Ma'])
         imax = np.argmax(err_sup)
         assert err_sup[imax] <= 0.01, \
-            "{0}={1} =>  Ma={2} with error={3}".format(
-                v, dat_sup[v][imax], X[imax], err_sup[imax])
+            "{0}={1} =>  Ma={2},{3} with error={4}".format(
+                v, dat_sup['Ma'][imax], dat_sup[v][imax], X[imax], err_sup[imax])
 
 
 def test_derivative():
     """Check explicit derivative against a numerical approximation."""
     for v in var_test_sup + ['A_Acrit']:
-        Ma = np.linspace(0., 3.)
+        Ma = np.linspace(0., 3., 100)
 
         # Explicit
         dYdMa = cf.derivative_from_Ma(v, Ma, ga)
@@ -201,5 +208,3 @@ def test_lookup_mcpTo_APo():
     # Evaluate lookup
     Ma_out = cf.lookup_mcpTo_APo(mcpTo_APo, ga)
     assert np.all(np.isclose(Ma, Ma_out,atol=1e-6))
-
-

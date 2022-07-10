@@ -107,6 +107,9 @@ def to_Ma(var, var_in, ga, supersonic=False):
     elif var == 'mcpTo_AP':
         Ma_out = Ma_from_mcpTo_AP(var_in, ga)
 
+    elif var == 'F_mcpTo':
+        Ma_out = Ma_from_F_mcpTo(var_in, ga, supersonic)
+
     elif var == 'A_Acrit':
         Ma_out = Ma_from_A_Acrit(var_in, ga, supersonic)
 
@@ -148,6 +151,10 @@ def from_Ma(var, Ma_in, ga):
 
     elif var == 'mcpTo_AP':
         vout = mcpTo_AP_from_Ma(Ma, ga)
+
+    # Impulse
+    elif var == 'F_mcpTo':
+        vout = F_mcpTo_from_Ma(Ma, ga)
 
     # Choking area
     elif var == 'A_Acrit':
@@ -194,6 +201,10 @@ def derivative_from_Ma(var, Ma_in, ga):
 
     if var == 'mcpTo_AP':
         return der_mcpTo_AP_from_Ma(Ma, ga)
+
+    # Impulse
+    if var == 'F_mcpTo':
+        return der_F_mcpTo_from_Ma(Ma, ga)
 
     # Choking area
     if var == 'A_Acrit':

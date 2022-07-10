@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # Input data
 Ma = np.linspace(0., 3.)
 ga = np.array(1.4)
-varlist = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP', 'A_Acrit', 'Mash', 'Posh_Po']
+varlist = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo', 'mcpTo_AP', 'A_Acrit', 'Mash', 'Posh_Po','F_mcpTo']
 
 # Set up figure
 fig, ax = plt.subplots()

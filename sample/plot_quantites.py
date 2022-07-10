@@ -11,11 +11,12 @@ from matplotlib import rcParams
 Ma = np.linspace(0., 4.,1000)
 ga = 1.4
 varlist = ['To_T', 'Po_P', 'rhoo_rho', 'V_cpTo', 'mcpTo_APo',
-           'mcpTo_AP', 'A_Acrit', 'Mash', 'Posh_Po']
+           'mcpTo_AP', 'A_Acrit', 'Mash', 'Posh_Po','F_mcpTo']
 labels = [r'$T_0/T$', r'$p_0/p$', r'$\rho_0/\rho$', r'$V/\sqrt{c_pT_0}$',
           r'$\dot{m}\sqrt{c_pT_0}/Ap_0$',
           r'$\dot{m}\sqrt{c_pT_0}/Ap$', r'$A/A_*$',
-          r'$\mathit{M\kern-.2ema}_\mathrm{sh}$', r'$p_{0,\mathrm{sh}}/p_0$']
+          r'$\mathit{M\kern-.2ema}_\mathrm{sh}$', r'$p_{0,\mathrm{sh}}/p_0$',
+          r'$F/\dot{m}\sqrt{c_pT_0}$']
 
 # Forwards calcuations
 Y = {v: cf.from_Ma(v, Ma, ga) for v in varlist}
