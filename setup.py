@@ -12,7 +12,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="compflow",
-    version="0.4.0",
+    version="0.5.0",
     author="James Brind",
     author_email="jb753@cam.ac.uk",
     description="Fast compressible flow tables for aerodynamic calculations in Python.",

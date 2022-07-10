@@ -41,6 +41,8 @@ The code deals in the following non-dimensional groups:
 +---------------------------------+--------------------------------------------+---------------+
 | Normalised velocity             | :math:`\dfrac{V}{\sqrt{c_pT_0}}`           | `V_cpTo`      |
 +---------------------------------+--------------------------------------------+---------------+
+| Impulse function                | :math:`\dfrac{F}{\dot{m}\sqrt{c_pT_0}}`    | `F_mcpTo`     |
++---------------------------------+--------------------------------------------+---------------+
 | Normalised mass flow            | :math:`\dfrac{\dot{m}\sqrt{c_pT_0}}{Ap_0}` | `mcpTo_APo`   |
 | (or flow function)              |                                            |               |
 +---------------------------------+--------------------------------------------+---------------+
@@ -66,6 +68,8 @@ The following dimensional quantities are used in the definitions:
 | :math:`c_p`     | Specific heat capacity at constant pressure |
 +-----------------+---------------------------------------------+
 | :math:`c_v`     | Specific heat capacity at constant volume   |
++-----------------+---------------------------------------------+
+| :math:`F`       | Impulse                                     |
 +-----------------+---------------------------------------------+
 | :math:`\dot{m}` | Mass flow rate                              |
 +-----------------+---------------------------------------------+
@@ -95,6 +99,7 @@ Evaluation from Mach number
    compflow.V_cpTo_from_Ma
    compflow.mcpTo_APo_from_Ma
    compflow.mcpTo_AP_from_Ma
+   compflow.F_mcpTo_from_Ma
    compflow.A_Acrit_from_Ma
    compflow.Mash_from_Ma
    compflow.Posh_Po_from_Ma
@@ -103,6 +108,7 @@ Evaluation from Mach number
 .. autofunction:: compflow.Po_P_from_Ma
 .. autofunction:: compflow.rhoo_rho_from_Ma
 .. autofunction:: compflow.V_cpTo_from_Ma
+.. autofunction:: compflow.F_mcpTo_from_Ma
 .. autofunction:: compflow.mcpTo_APo_from_Ma
 .. autofunction:: compflow.mcpTo_AP_from_Ma
 .. autofunction:: compflow.A_Acrit_from_Ma
@@ -119,6 +125,7 @@ Inversion to Mach number
    compflow.Ma_from_Po_P
    compflow.Ma_from_rhoo_rho
    compflow.Ma_from_V_cpTo
+   compflow.Ma_from_F_mcpTo
    compflow.Ma_from_mcpTo_APo
    compflow.Ma_from_mcpTo_AP
    compflow.Ma_from_A_Acrit
@@ -130,6 +137,7 @@ Inversion to Mach number
 .. autofunction:: compflow.Ma_from_Po_P
 .. autofunction:: compflow.Ma_from_rhoo_rho
 .. autofunction:: compflow.Ma_from_V_cpTo
+.. autofunction:: compflow.Ma_from_F_mcpTo
 .. autofunction:: compflow.Ma_from_mcpTo_APo
 .. autofunction:: compflow.Ma_from_mcpTo_AP
 .. autofunction:: compflow.Ma_from_A_Acrit
@@ -146,6 +154,7 @@ Derivatives with respect to Mach number
    compflow.der_Po_P_from_Ma
    compflow.der_rhoo_rho_from_Ma
    compflow.der_V_cpTo_from_Ma
+   compflow.der_F_mcpTo_from_Ma
    compflow.der_mcpTo_APo_from_Ma
    compflow.der_mcpTo_AP_from_Ma
    compflow.der_A_Acrit_from_Ma
@@ -156,6 +165,7 @@ Derivatives with respect to Mach number
 .. autofunction:: compflow.der_Po_P_from_Ma
 .. autofunction:: compflow.der_rhoo_rho_from_Ma
 .. autofunction:: compflow.der_V_cpTo_from_Ma
+.. autofunction:: compflow.der_F_mcpTo_from_Ma
 .. autofunction:: compflow.der_mcpTo_APo_from_Ma
 .. autofunction:: compflow.der_mcpTo_AP_from_Ma
 .. autofunction:: compflow.der_A_Acrit_from_Ma

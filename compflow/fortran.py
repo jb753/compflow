@@ -138,6 +138,12 @@ def F_mcpTo_from_Ma(Ma,ga):
         \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)
         ^{-\tfrac{1}{2}}
 
+    where
+
+    .. math::
+
+        F = (p + \rho V^2)A
+
     Parameters
     ----------
     Ma : array
@@ -405,7 +411,7 @@ def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
     return _restore_shape(fort_to_Ma.mcpto_apo, (mcpTo_APo, ga, sup))
 
 def Ma_from_F_mcpTo(F_mcpTo, ga, sup=False):
-    r"""Mach number as function of normalised mass flow.
+    r"""Mach number as function of impulse function.
 
     The inverse of :func:`compflow.F_mcpTo_from_Ma`, which at a given value
     of :math:`F/{\dot{m}\sqrt{c_p T_0}}` must be solved iteratively for
@@ -413,25 +419,23 @@ def Ma_from_F_mcpTo(F_mcpTo, ga, sup=False):
 
     .. math::
 
-        \frac{\dot{m}\sqrt{c_p T_0}}{A p_0} =
-        \frac{\gamma}{\sqrt{\gamma -1}}\, \Ma
+        \frac{F}{\dot{m}\sqrt{c_p T_0}} =
+        \frac{\sqrt{\gamma -1}}{\gamma}\,
+        \frac{1 + \gamma \Ma^2}{\Ma}
         \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)
-		^{-\tfrac{1}{2}\tfrac{\gamma + 1}{\gamma - 1}}
+        ^{-\tfrac{1}{2}}
 
-    For each :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`, there are two possible
-    values of :math:`\Ma`. Return the subsonic solution with :math:`\Ma\le 1`
-    by default; the supersonic solution with :math:`\Ma>1`` is retrived by
-    setting the parameter `sup=True`.
-
-    Returns `NaN` if input data is not physically possible, where
-    :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0} < 0`. The normalised mass flow
-    reaches a maximum at the sonic velocity :math:`\Ma=1`. Input data above the
-    maximum value correspond to choking --- also return `NaN` in this case.
+    The impulse function reaches a minimum at the sonic velocity :math:`\Ma=1`.
+    This means that for some values of :math:`F/\dot{m}\sqrt{c_p T_0}`, there
+    are two possible solutions. Return the subsonic solution with :math:`\Ma\le
+    1` by default; the supersonic solution with :math:`\Ma>1`` is retrived by
+    setting the parameter `sup=True`. Return `NaN` for input data below the
+    mimimum value.
 
     Parameters
     ----------
     F_mcpTo : array
-        Normalised mass flow, :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`.
+        Impulse function, :math:`F/\dot{m}\sqrt{c_p T_0}`.
     ga : float
         Ratio of specific heats, :math:`\gamma`.
     sup : bool, default False
@@ -740,10 +744,11 @@ def der_F_mcpTo_from_Ma(Ma, ga):
 
     .. math::
 
-        \DMa\left(\frac{\dot{m}\sqrt{c_p T_0}}{A p} \right)=
-        \frac{\gamma}{\sqrt{\gamma -1}}
-        \Big(1 + (\gamma - 1) \Ma^2 \Big)
-        \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)^{-\tfrac{1}{2}}
+        \DMa\left(\frac{F}{\dot{m}\sqrt{c_p T_0}} \right)=
+        \frac{\sqrt{\gamma -1}}{\gamma}\,
+        \frac{1 + \gamma \Ma^2}{\Ma^2}
+        \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)
+        ^{-\tfrac{3}{2}}
 
     Parameters
     ----------
