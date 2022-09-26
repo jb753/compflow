@@ -555,3 +555,108 @@ C       RETURN NAN FOR PRE SHOCK MA LESS THAN UNITY
         ENDIF
       ENDDO
       END
+C
+      SUBROUTINE MCPTO_APO_FIT(M,X,G,SUP,N)
+C     NUMERIC INVERSION USING NEWTON'S METHOD
+C     VERSION USING POLYNOMIAL FIT FOR GUESS
+C     ARGUMENTS
+      INTEGER N
+      REAL*8 G
+      REAL*8 M(N)
+      REAL*8 X(N)
+      LOGICAL SUP
+Cf2py optional :: SUP = .FALSE.
+Cf2py intent(in) sup
+Cf2py intent(in) x
+Cf2py intent(in) g
+Cf2py intent(out) m
+Cf2py intent(hide) n
+C     INTERMEDIATE VARS
+      REAL*8 GM1
+      REAL*8 GP1
+      REAL*8 M_GP1_GM1_2
+      REAL*8 G_SQ_GM1
+      REAL*8 GM1_2
+      REAL*8 GP1_2
+C     ITERATION VARS
+      INTEGER K
+      REAL*8 MA
+      REAL*8 MANEW
+      REAL*8 ERR
+      REAL*8 F
+      REAL*8 DF
+      REAL*8 TO_T
+      REAL*8 XSQ
+      REAL*8 XCU
+      REAL*8 XQU
+C     CONSTANTS
+      REAL*8 FCRIT
+      REAL*8 NAN
+      REAL*8 TOL
+C     CALC GAMMA VARIANTS
+      GM1 = G-1.0D0
+      GP1 = G+1.0D0
+      GM1_2 = GM1/2.0D0
+      GP1_2 = GP1/2.0D0
+      M_GP1_GM1_2 = GP1/GM1/(-2.0D0)
+      G_SQ_GM1 = G/SQRT(GM1)
+C     CALC CONSTANTS
+      NAN = 0.0D0
+      NAN = 0.0D0/NAN
+      TOL = 1.0D-6
+C     CHOKING VALUE
+      FCRIT = G_SQ_GM1 * (1.0D0 + GM1_2)**M_GP1_GM1_2
+C     MAIN LOOP
+      DO I=1,N
+C       RETURN NAN IF CHOKED       
+        IF (X(I).gt.FCRIT) THEN
+            M(I) = NAN
+        ELSE
+            IF (SUP) THEN
+                MA = 1.5D0
+            ELSE
+C               USE POLYNOMIAL FITS FOR A CLOSE INITIAL GUESS                
+                XSQ = X(I)*X(I)
+                XCU = XSQ*X(I)
+                XQU = XCU*X(I)
+                IF (G.gt.1.376D0) THEN
+                    MA = 1.32053361D0 * XQU
+     &               - 2.85426701D0 * XCU
+     &               + 2.0865512D0 * XSQ
+     &               - 0.06234886D0 * X(I)
+     &               + 0.0279232
+                ELSE IF (G.gt.1.353D0) THEN
+                    MA = 1.18760418D0 * XQU
+     &               - 2.62883714  D0 * XCU
+     &               + 1.96862562 D0 * XSQ
+     &               - 0.05421323D0 * X(I)
+     &               + 0.02763895
+                ELSE
+                    MA = 1.05095642D0 * XQU
+     &               - 2.39198379D0 * XCU
+     &               + 1.84229371D0 * XSQ
+     &               - 0.04619882D0 * X(I)
+     &               + 0.02735334D0
+                ENDIF
+            ENDIF
+            K = 0
+            ERR = HUGE(ERR)
+            DO WHILE (ERR.gt.TOL.and.K.lt.100)
+
+            K = K + 1
+            TO_T = (1.0D0 + GM1_2 * MA*MA)
+            F = G_SQ_GM1 * MA * TO_T**M_GP1_GM1_2
+            DF = F *(1.0D0 - GP1_2*MA*MA/TO_T)/MA 
+            MANEW = MA - (F-X(I)) / DF
+            ERR = ABS(MANEW - MA)
+            MA = MANEW
+            ENDDO
+            IF (ERR.lt.TOL) THEN
+                M(I) = MA
+            ELSE
+                M(I) = NAN
+            ENDIF
+        ENDIF
+      ENDDO
+      END
+C

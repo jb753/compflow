@@ -369,7 +369,7 @@ def Ma_from_V_cpTo(V_cpTo, ga):
     """
     return _restore_shape(fort_to_Ma.v_cpto, (V_cpTo, ga))
 
-def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
+def _Ma_from_mcpTo_APo_old(mcpTo_APo, ga, sup=False):
     r"""Mach number as function of normalised mass flow.
 
     The inverse of :func:`compflow.mcpTo_APo_from_Ma`, which at a given value
@@ -575,6 +575,47 @@ def Ma_from_Posh_Po(Posh_Po, ga):
         Mach number, :math:`\Ma`.
     """
     return _restore_shape(fort_to_Ma.posh_po, (Posh_Po, ga))
+
+def Ma_from_mcpTo_APo(mcpTo_APo, ga, sup=False):
+    r"""Mach number as function of normalised mass flow.
+
+    The inverse of :func:`compflow.mcpTo_APo_from_Ma`, which at a given value
+    of :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}` must be solved iteratively for
+    :math:`\Ma` using Newton's method.
+
+    .. math::
+
+        \frac{\dot{m}\sqrt{c_p T_0}}{A p_0} =
+        \frac{\gamma}{\sqrt{\gamma -1}}\, \Ma
+        \left(1 + \frac{\gamma - 1}{2} \Ma^2 \right)
+		^{-\tfrac{1}{2}\tfrac{\gamma + 1}{\gamma - 1}}
+
+    For each :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`, there are two possible
+    values of :math:`\Ma`. Return the subsonic solution with :math:`\Ma\le 1`
+    by default; the supersonic solution with :math:`\Ma>1`` is retrived by
+    setting the parameter `sup=True`.
+
+    Returns `NaN` if input data is not physically possible, where
+    :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0} < 0`. The normalised mass flow
+    reaches a maximum at the sonic velocity :math:`\Ma=1`. Input data above the
+    maximum value correspond to choking --- also return `NaN` in this case.
+
+    Parameters
+    ----------
+    mcpTo_APo : array
+        Normalised mass flow, :math:`{\dot{m}\sqrt{c_p T_0}}/{A p_0}`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+    sup : bool, default False
+        If true, return the supersonic solution, otherwise the subsonic
+        solution.
+
+    Returns
+    -------
+    Ma : array
+        Mach number, :math:`\Ma`.
+    """
+    return _restore_shape(fort_to_Ma.mcpto_apo_fit, (mcpTo_APo, ga, sup))
 
 # Derivatives from Ma
 def der_To_T_from_Ma(Ma, ga):
