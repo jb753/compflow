@@ -176,3 +176,11 @@ Lookup normalised mass flow
 ***************************
 
 .. autofunction:: compflow.lookup_mcpTo_APo
+
+
+Dimensional functions
+*********************
+
+.. autofunction:: compflow.static_from_stagnation
+.. autofunction:: compflow.stagnation_from_static
+.. autofunction:: compflow.change_frame

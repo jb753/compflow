@@ -158,7 +158,7 @@ C         USE NEWTON'S METHOD FOR NEW GUESS OF MA
           F = SQ_GM1_G * (1.0D0/MA + G*MA) / SQ_TO_T
           C = SQ_TO_T*SQ_TO_T*SQ_TO_T
           DF = SQ_GM1_G * (MA*MA - 1.0D0) / MA / MA / C 
-          MANEW = MA - (F-X(I)) / DF * 0.1D0
+          MANEW = MA - (F-X(I)) / DF
 C         IF WE CROSS ZERO, THEN SHRINK MA GEOMETRICALLY
           IF (MANEW.lt.0.0D0) THEN
               MANEW = 0.5D0 * MA

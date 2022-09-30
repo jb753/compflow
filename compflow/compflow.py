@@ -28,18 +28,18 @@ def _generate_lookup(var, ga, atol):
     from scipy.interpolate import UnivariateSpline
 
     # Pick lower limit of table to avoid undefined values
-    if var == 'A_Acrit':
+    if var == "A_Acrit":
         y0 = atol
     else:
-        y0 = 0.
+        y0 = 0.0
 
     # Start with a small table, uniformly sampled
     Nk = 10
-    y = np.linspace(y0, 1., Nk)
+    y = np.linspace(y0, 1.0, Nk)
     x = from_Ma(var, y, ga)
 
     # flip if needed
-    if x[-1]<x[0]:
+    if x[-1] < x[0]:
         x = np.flip(x)
         y = np.flip(y)
 
@@ -49,7 +49,7 @@ def _generate_lookup(var, ga, atol):
     for n in range(N_max):
 
         # Make interpolator
-        f = UnivariateSpline(x,y,k=1,s=0.,ext='raise')
+        f = UnivariateSpline(x, y, k=1, s=0.0, ext="raise")
 
         # Compute error in Mach at midpoints
         ym = 0.5 * (y[:-1] + y[1:])
@@ -64,8 +64,8 @@ def _generate_lookup(var, ga, atol):
 
         # Find indices where err exceeds tolerance and add to table
         ierr = np.where(err > atol)[0]
-        x = np.insert(x,ierr+1,xm[ierr])
-        y = np.insert(y,ierr+1,ym[ierr])
+        x = np.insert(x, ierr + 1, xm[ierr])
+        y = np.insert(y, ierr + 1, ym[ierr])
 
     # Add shape restore to the spline object
     def fs(Ma):
@@ -75,6 +75,7 @@ def _generate_lookup(var, ga, atol):
             return f(Ma)
 
     return fs
+
 
 def _cache_lookup(var, ga, atol):
     """Fetch a lookup table from cache, create if needed."""
@@ -89,38 +90,38 @@ def to_Ma(var, var_in, ga, supersonic=False):
     """Invert the Mach number relations, solving iteratively if needed."""
 
     # Choose variable
-    if var == 'To_T':
+    if var == "To_T":
         Ma_out = Ma_from_To_T(var_in, ga)
 
-    elif var == 'Po_P':
+    elif var == "Po_P":
         Ma_out = Ma_from_Po_P(var_in, ga)
 
-    elif var == 'rhoo_rho':
+    elif var == "rhoo_rho":
         Ma_out = Ma_from_rhoo_rho(var_in, ga)
 
-    elif var == 'V_cpTo':
+    elif var == "V_cpTo":
         Ma_out = Ma_from_V_cpTo(var_in, ga)
 
-    elif var == 'mcpTo_APo':
+    elif var == "mcpTo_APo":
         Ma_out = Ma_from_mcpTo_APo(var_in, ga, supersonic)
 
-    elif var == 'mcpTo_AP':
+    elif var == "mcpTo_AP":
         Ma_out = Ma_from_mcpTo_AP(var_in, ga)
 
-    elif var == 'F_mcpTo':
+    elif var == "F_mcpTo":
         Ma_out = Ma_from_F_mcpTo(var_in, ga, supersonic)
 
-    elif var == 'A_Acrit':
+    elif var == "A_Acrit":
         Ma_out = Ma_from_A_Acrit(var_in, ga, supersonic)
 
-    elif var == 'Mash':
+    elif var == "Mash":
         Ma_out = Ma_from_Mash(var_in, ga)
 
-    elif var == 'Posh_Po':
+    elif var == "Posh_Po":
         Ma_out = Ma_from_Posh_Po(var_in, ga)
 
     else:
-        raise ValueError('Bad flow quantity requested.')
+        raise ValueError("Bad flow quantity requested.")
 
     return Ma_out
 
@@ -131,47 +132,47 @@ def from_Ma(var, Ma_in, ga):
     Ma = np.atleast_1d(Ma_in)
 
     # Simple ratios
-    if var == 'To_T':
+    if var == "To_T":
         vout = To_T_from_Ma(Ma, ga)
 
-    elif var == 'Po_P':
+    elif var == "Po_P":
         vout = Po_P_from_Ma(Ma, ga)
 
-    elif var == 'rhoo_rho':
+    elif var == "rhoo_rho":
         vout = rhoo_rho_from_Ma(Ma, ga)
 
     # Velocity and mass flow functions
-    elif var == 'V_cpTo':
+    elif var == "V_cpTo":
         vout = V_cpTo_from_Ma(Ma, ga)
 
-    elif var == 'mcpTo_APo':
+    elif var == "mcpTo_APo":
         vout = mcpTo_APo_from_Ma(Ma, ga)
         # We handle infinite input data explicitly
-        vout[np.isinf(Ma)]=0.0
+        vout[np.isinf(Ma)] = 0.0
 
-    elif var == 'mcpTo_AP':
+    elif var == "mcpTo_AP":
         vout = mcpTo_AP_from_Ma(Ma, ga)
 
     # Impulse
-    elif var == 'F_mcpTo':
+    elif var == "F_mcpTo":
         vout = F_mcpTo_from_Ma(Ma, ga)
 
     # Choking area
-    elif var == 'A_Acrit':
+    elif var == "A_Acrit":
         vout = A_Acrit_from_Ma(Ma, ga)
 
     # Post-shock Mach
-    elif var == 'Mash':
+    elif var == "Mash":
         vout = Mash_from_Ma(Ma, ga)
 
     # Shock pressure ratio
-    elif var == 'Posh_Po':
+    elif var == "Posh_Po":
         vout = Posh_Po_from_Ma(Ma, ga)
 
     else:
-        raise ValueError('Incorrect quantity requested')
+        raise ValueError("Incorrect quantity requested")
 
-    if np.size(vout)==1:
+    if np.size(vout) == 1:
         vout = float(vout)
 
     return vout
@@ -183,43 +184,43 @@ def derivative_from_Ma(var, Ma_in, ga):
     Ma = np.asarray(Ma_in)
 
     # Simple ratios
-    if var == 'To_T':
+    if var == "To_T":
         return der_To_T_from_Ma(Ma, ga)
 
-    if var == 'Po_P':
+    if var == "Po_P":
         return der_Po_P_from_Ma(Ma, ga)
 
-    if var == 'rhoo_rho':
+    if var == "rhoo_rho":
         return der_rhoo_rho_from_Ma(Ma, ga)
 
     # Velocity and mass flow functions
-    if var == 'V_cpTo':
+    if var == "V_cpTo":
         return der_V_cpTo_from_Ma(Ma, ga)
 
-    if var == 'mcpTo_APo':
+    if var == "mcpTo_APo":
         return der_mcpTo_APo_from_Ma(Ma, ga)
 
-    if var == 'mcpTo_AP':
+    if var == "mcpTo_AP":
         return der_mcpTo_AP_from_Ma(Ma, ga)
 
     # Impulse
-    if var == 'F_mcpTo':
+    if var == "F_mcpTo":
         return der_F_mcpTo_from_Ma(Ma, ga)
 
     # Choking area
-    if var == 'A_Acrit':
+    if var == "A_Acrit":
         return der_A_Acrit_from_Ma(Ma, ga)
 
     # Post-shock Mack number
-    if var == 'Mash':
+    if var == "Mash":
         return der_Mash_from_Ma(Ma, ga)
 
     # Shock pressure ratio
-    if var == 'Posh_Po':
+    if var == "Posh_Po":
         return der_Posh_Po_from_Ma(Ma, ga)
 
     # Throw an error if we don't recognise the requested variable
-    raise ValueError('Invalid quantity requested: {}.'.format(var))
+    raise ValueError("Invalid quantity requested: {}.".format(var))
 
 
 def lookup_mcpTo_APo(mcpTo_APo, ga, atol=1e-6):
@@ -255,5 +256,121 @@ def lookup_mcpTo_APo(mcpTo_APo, ga, atol=1e-6):
         If Mach number is outside the table range of :math:`0\le\Ma\le 1`.
 
     """
-    return _cache_lookup('mcpTo_APo', ga, atol)(mcpTo_APo)
+    return _cache_lookup("mcpTo_APo", ga, atol)(mcpTo_APo)
 
+
+def static_from_stagnation(To, Po, Ma, ga):
+    r"""Given dimensional stagnation state and Mach number, get static state.
+
+    A convenience function that makes calls to :func:`compflow.To_T_from_Ma`
+    and :func:`compflow.Po_P_from_Ma` in order to convert a dimensional
+    stagnation pressure and temperature to static quantities (in the same
+    units).
+
+    This function is the inverse of :func:`compflow.stagnation_from_static` and a special case of :func:`compflow.change_frame`.
+
+    Parameters
+    ----------
+    To : array
+        Stagnation temperature, :math:`T_0`.
+    Po : array
+        Stagnation pressure, :math:`p_0`.
+    Ma : array
+        Mach number, :math:`\Ma`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+
+    Returns
+    -------
+    T : array
+        Static temperature, :math:`T`.
+    P : array
+        Static pressure, :math:`p`.
+
+    """
+
+    return change_frame(To, Po, Ma, 0.0, ga)
+
+
+def stagnation_from_static(T, P, Ma, ga):
+    r"""Given dimensional static state and Mach number, get stagnation state.
+
+    A convenience function that makes calls to :func:`compflow.To_T_from_Ma`
+    and :func:`compflow.Po_P_from_Ma` in order to convert a dimensional
+    stagnation pressure and temperature to static quantities (in the same
+    units).
+
+    This function is the inverse of :func:`compflow.static_from_stagnation` and
+    a special case of :func:`compflow.change_frame`.
+
+    Parameters
+    ----------
+    T : array
+        Static temperature, :math:`T`.
+    P : array
+        Static pressure, :math:`p`.
+    Ma : array
+        Mach number, :math:`\Ma`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+
+    Returns
+    -------
+    To : array
+        Stagnation temperature, :math:`T_0`.
+    Po : array
+        Stagnation pressure, :math:`p_0`.
+
+    """
+
+    return change_frame(T, P, 0.0, Ma, ga)
+
+
+def change_frame(To1, Po1, Ma1, Ma2, ga):
+    r"""Convert a dimensional stagnation state between reference frames.
+
+    Suppose we have a stagnation state :math:`T_{01}, P_{01}` in one reference
+    frame, with a known Mach number relative to that frame :math:`\Ma_1`. Then,
+    given the Mach number relative to a *different* reference frame
+    :math:`\Ma_2`, we would like to know the stagnation state in the new
+    reference frame :math:`T_{02}, P_{02}`.
+
+    The static state is independent of reference frame. So we convert the
+    stagnation state to static and back again in the new reference frame,
+    calling :func:`compflow.To_T_from_Ma` and :func:`compflow.Po_P_from_Ma`
+    with the respective Mach numbers.
+
+    Swapping the input Mach numbers will invert this function.
+
+    Parameters
+    ----------
+    To1 : array
+        Stagnation temperature in frame 1, :math:`T_{01}`.
+    Po1 : array
+        Stagnation pressure in frame 1, :math:`p_{01}`.
+    Ma1 : array
+        Mach number relative to frame 1, :math:`\Ma_1`.
+    Ma2 : array
+        Mach number relative to frame 2, :math:`\Ma_2`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+
+    Returns
+    -------
+    To2 : array
+        Stagnation temperature in frame 2, :math:`T_{02}`.
+    Po2 : array
+        Stagnation pressure in frame 2, :math:`p_{02}`.
+    """
+
+    # Get ratios
+    Po1_P = Po_P_from_Ma(Ma1, ga)
+    To1_T = To_T_from_Ma(Ma1, ga)
+    Po2_P = Po_P_from_Ma(Ma2, ga)
+    To2_T = To_T_from_Ma(Ma2, ga)
+
+    # Convert
+    To2 = To1 / To1_T * To2_T
+    Po2 = Po1 / Po1_P * Po2_P
+
+    return To2, Po2
