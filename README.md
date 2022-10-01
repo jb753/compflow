@@ -24,11 +24,20 @@ compflow is available on the Python Package Index, so installation is as simple 
 
 ```python
 
-   python3 -m pip install compflow
+   pip install compflow
 
    ```
-**Note:** as the library uses Fortran subroutines behind the scenes, you will
-need a working Fortran compiler for the installation to complete successfully. 
+**Note:** as the library uses the NumPy--Fortran interface, you will
+need both Numpy and a working Fortran compiler for the installation to complete
+successfully. 
+
+Optionally, run the tests using `pytest` to verify the installation,
+
+```python
+
+   pytest --pyargs compflow
+
+   ```
 
 We can now start doing some calculations. First, an explicit evaluation of
 stagnation pressure ratio given a Mach number,

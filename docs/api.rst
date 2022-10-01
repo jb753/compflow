@@ -11,12 +11,16 @@ reverse operation of finding the Mach number that corresponds to the value of
 another quantity; and third, evaluation of derivatives with respect to Mach
 number. This page concludes with a description of the lookup table function.
 
-.. note::
+General notes
+*************
 
-    The library makes minimal attempts to validate input data, in the interests
-    of speed. So, for example, feeding most functions a negative Mach number
-    will silently produce bogus results. If this is not what you want, validate
-    your own data before calling the library.
+* The library makes minimal attempts to validate input data, in the interests
+  of speed. So, for example, feeding most functions a negative Mach number will
+  silently produce bogus results. If this is not what you want, validate your
+  own data before calling the library.
+* The working fluid is assumed a perfect gas, with constant specific heats.
+* Functions operating on dimensional quantities make no assumptions about
+  units, so input data in any consistent system of measurment will work.
 
 .. _nomen:
 
@@ -76,6 +80,8 @@ The following dimensional quantities are used in the definitions:
 | :math:`p`       | Static pressure                             |
 +-----------------+---------------------------------------------+
 | :math:`p_0`     | Stagnation pressure                         |
++-----------------+---------------------------------------------+
+| :math:`R`       | Specific gas constant                       |
 +-----------------+---------------------------------------------+
 | :math:`\rho`    | Static density                              |
 +-----------------+---------------------------------------------+
@@ -181,6 +187,20 @@ Lookup normalised mass flow
 Dimensional functions
 *********************
 
+.. autosummary::
+
+    compflow.static_from_stagnation
+    compflow.stagnation_from_static
+    compflow.change_frame
+    compflow.gas_constant
+    compflow.specific_heats
+    compflow.primitive_from_conserved
+    compflow.conserved_from_primitive
+
 .. autofunction:: compflow.static_from_stagnation
 .. autofunction:: compflow.stagnation_from_static
 .. autofunction:: compflow.change_frame
+.. autofunction:: compflow.gas_constant
+.. autofunction:: compflow.specific_heats
+.. autofunction:: compflow.primitive_from_conserved
+.. autofunction:: compflow.conserved_from_primitive

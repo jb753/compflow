@@ -267,7 +267,8 @@ def static_from_stagnation(To, Po, Ma, ga):
     stagnation pressure and temperature to static quantities (in the same
     units).
 
-    This function is the inverse of :func:`compflow.stagnation_from_static` and a special case of :func:`compflow.change_frame`.
+    This function is the inverse of :func:`compflow.stagnation_from_static` and
+    a special case of :func:`compflow.change_frame`.
 
     Parameters
     ----------
@@ -374,3 +375,194 @@ def change_frame(To1, Po1, Ma1, Ma2, ga):
     Po2 = Po1 / Po1_P * Po2_P
 
     return To2, Po2
+
+
+def specific_heats(ga, rgas):
+    r"""Specific heats from gas constant and specific heat ratio.
+
+    For a perfect gas, the specific heat capacities at constant pressure and
+    volume are given by,
+
+    .. math::
+
+         c_p  = R \frac{\gamma}{\gamma - 1} \, , \quad  c_v  = R \frac{1}{\gamma - 1}
+
+    Parameters
+    ----------
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+    rgas : float
+        Specific gas constant, :math:`R`.
+
+    Returns
+    -------
+    cp : float
+        Specific heat capacity at constant pressure, :math:`c_p`.
+    cv : float
+        Specific heat capacity at constant volume, :math:`c_v`.
+    """
+    cv = rgas / (ga - 1.0)
+    cp = cv * ga
+    return cp, cv
+
+
+def gas_constant(ga, cp):
+    r"""Specific gas constant from specific heat ratio and heat capacity.
+
+    For a perfect gas, the specific gas constant is,
+
+    .. math::
+
+        R = c_p \frac{\gamma - 1}{\gamma}
+
+    Parameters
+    ----------
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+    cp : float
+        Specific heat capacity at constant pressure, :math:`c_p`.
+
+    Returns
+    -------
+    rgas : float
+        Specific gas constant, :math:`R`.
+    """
+    return (ga - 1.0) / ga * cp
+
+
+def primitive_from_conserved(r, ro, rovx, rovr, rorvt, roe, ga, rgas):
+    r"""Get velocity, pressure temperature from conserved quantities.
+
+    Computational fluid dynamics codes often store flow fields in terms of
+    *conserved* quantities, the net fluxes of which sum to zero for each cell:
+
+    .. math::
+
+        \rho \, ,\ \rho V_x \, ,\ \rho V_r \, ,\ \rho r V_\theta \, ,\ \rho e \, ,
+
+    where the specific internal energy :math:`e = c_v T + \tfrac{1}{2} V^2`.
+    Of interest for further analysis are an equivalent set of five *primitive*
+    quantities that are easier to work with:
+
+    .. math::
+
+        V_x \, ,\ V_r \, ,\ V_\theta \, ,\ p \, ,\ T \, .
+
+    This function converts the *conserved* quantities to *primitive* quantities
+    by dividing out density and using the ideal gas law. The inverse of this
+    function is :func:`compflow.conserved_from_primitive`.
+
+    Parameters
+    ----------
+    r : array
+        Radial coordinate, :math:`r`.
+    ro : array
+        Density, :math:`\rho`.
+    rovx : array
+        Axial momentum flux, :math:`\rho V_x`.
+    rovr : array
+        Radial momentum flux, :math:`\rho V_r`.
+    rorvt : array
+        Moment of angular momentum flux, :math:`\rho r V_\theta`.
+    rovx : array
+        Volumetric internal energy, :math:`\rho e`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+    rgas : float
+        Specific gas constant, :math:`R`.
+
+    Returns
+    -------
+    vx : array
+        Axial velocity, :math:`V_x`.
+    vr : array
+        Radial velocity, :math:`V_r`.
+    vt : array
+        Circumferential velocity, :math:`V_\theta`.
+    P : array
+        Static pressure, :math:`p`.
+    T : array
+        Static temperature, :math:`T`.
+    """
+
+    cp, cv = specific_heats(ga, rgas)
+
+    # Divide out density
+    vx = rovx / ro
+    vr = rovr / ro
+    vt = rorvt / ro / r
+    e = roe / ro
+
+    # Calculate secondary variables
+    vsq = vx ** 2.0 + vr ** 2.0 + vt ** 2.0
+    T = (e - 0.5 * vsq) / cv
+    P = ro * rgas * T
+
+    return vx, vr, vt, P, T
+
+
+def conserved_from_primitive(r, vx, vr, vt, P, T, ga, rgas):
+    r"""Get conserved quantities from velocity, pressure, temperature.
+
+    Two thermodynamic properties and three velocity components are sufficient
+    to specify a three-dimensional flow field. We will call these the
+    *primitive* set of quantities,
+
+    .. math::
+
+        V_x \, ,\ V_r \, ,\ V_\theta \, ,\ p \, ,\ T \, .
+
+    However, computational fluid dynamics codes often store flow fields in
+    terms of *conserved* quantities, the net fluxes of which sum to zero for
+    each cell:
+
+    .. math::
+
+        \rho \, ,\ \rho V_x \, ,\ \rho V_r \, ,\ \rho r V_\theta \, ,\ \rho e \, ,
+
+    where the specific internal energy :math:`e = c_v T + \tfrac{1}{2} V^2`.
+
+    This function converts *primitive* quantities to *conserved* quantities,
+    and is the inverse of :func:`compflow.primitive_from_conserved`.
+
+    Parameters
+    ----------
+    r : array
+        Radial coordinate, :math:`r`.
+    vx : array
+        Axial velocity, :math:`V_x`.
+    vr : array
+        Radial velocity, :math:`V_r`.
+    vt : array
+        Circumferential velocity, :math:`V_\theta`.
+    P : array
+        Static pressure, :math:`p`.
+    T : array
+        Static temperature, :math:`T`.
+    ga : float
+        Ratio of specific heats, :math:`\gamma`.
+    rgas : float
+        Specific gas constant, :math:`R`.
+
+    Returns
+    -------
+    ro : array
+        Density, :math:`\rho`.
+    rovx : array
+        Axial momentum flux, :math:`\rho V_x`.
+    rovr : array
+        Radial momentum flux, :math:`\rho V_r`.
+    rorvt : array
+        Moment of angular momentum flux, :math:`\rho r V_\theta`.
+    roe : array
+        Volumetric internal energy, :math:`\rho e`.
+    """
+
+    cp, cv = specific_heats(ga, rgas)
+    vsq = vx ** 2.0 + vr ** 2.0 + vt ** 2.0
+    ro = P / rgas / T
+    rovx = ro * vx
+    rovr = ro * vr
+    rorvt = ro * r * vt
+    roe = ro * (cv * T + 0.5 * vsq)
+    return ro, rovx, rovr, rorvt, roe

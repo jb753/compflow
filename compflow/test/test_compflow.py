@@ -331,3 +331,60 @@ def test_static_stagnation():
         To_out, Po_out = cf.stagnation_from_static(T, P, Ma, ga)
         assert np.isclose(To_out, To)
         assert np.isclose(Po_out, Po)
+
+def test_specific_heats():
+    """Verify ideal gas property relationships for specific heats."""
+    ga = 1.3
+    rgas = 287.
+    cp, cv = cf.specific_heats(ga, rgas)
+    assert np.isclose(cp/cv,ga)
+    assert np.isclose(rgas, cp - cv)
+
+def test_gas_constant():
+    """Verify ideal gas property relationships for gas constant."""
+    ga = 1.3
+    cp = 1005.
+    rgas = cf.gas_constant(ga, cp)
+    cv = cp/ga
+    assert np.isclose(rgas, cp - cv)
+
+def test_conserved_primitive():
+    """Ensure that the conserved and primitive functions invert each other."""
+
+    ro = 1.
+    Vx = 100.
+    Vr = 30.
+    Vt = 40.
+    r = 2.
+    T = 300.
+
+    ga = 1.4
+    rgas = 287.
+    cp, cv = cf.specific_heats(ga, rgas)
+
+    P = ro * rgas * T
+    Vsq = Vx**2. + Vr**2. + Vt**2.
+
+    rovx = ro * Vx
+    rovr = ro * Vr
+    rorvt = ro * r * Vt
+    roe = ro * (cv*T + 0.5*Vsq)
+
+    Vx_out, Vr_out, Vt_out, P_out, T_out = cf.primitive_from_conserved(r, ro, rovx, rovr, rorvt, roe, ga, rgas)
+
+    assert np.isclose(Vx_out, Vx)
+    assert np.isclose(Vr_out, Vr)
+    assert np.isclose(Vt_out, Vt)
+    assert np.isclose(P_out, P)
+    assert np.isclose(T_out, T)
+
+    ro_out, rovx_out, rovr_out, rorvt_out, roe_out = cf.conserved_from_primitive(r, Vx_out, Vr_out, Vt_out, P_out, T_out, ga, rgas)
+
+    assert np.isclose(ro_out, ro)
+    assert np.isclose(rovx_out, rovx)
+    assert np.isclose(rovr_out, rovr)
+    assert np.isclose(rorvt_out, rorvt)
+    assert np.isclose(roe_out, roe)
+
+
+
